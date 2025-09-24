@@ -275,7 +275,7 @@ class _MyAppState extends State<MyApp> {
       animation: _themeProvider,
       builder: (context, _) {
         return MaterialApp(
-          title: 'GoAnime',
+          title: 'goanime',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
