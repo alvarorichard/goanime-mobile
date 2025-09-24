@@ -151,10 +151,3 @@ If you encounter any issues or have questions:
    - Flutter version
    - Error messages or screenshots
 
-## Updates
-
-Stay updated with the latest features and bug fixes by watching this repository and checking the [Releases](https://github.com/alvarorichard/goanime-mobile/releases) page.
-
----
-
-**Happy Hacking!**
