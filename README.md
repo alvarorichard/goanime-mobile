@@ -1,3 +1,10 @@
+<p align="center">
+  <img src="https://github.com/alvarorichard/GoAnime/assets/102667323/49600255-d5a2-4405-81d1-a08cebae569a" alt="Imagem logo" />
+</p>
+
+
+
+
 # GoAnime Mobile
 
 A Flutter-based mobile implementation of the popular [GoAnime TUI](https://github.com/alvarorichard/GoAnime) application. This mobile app brings the anime streaming experience to your iOS and Android devices with a beautiful, intuitive interface.
