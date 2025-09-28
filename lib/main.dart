@@ -1,12 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:chewie/chewie.dart';
-import 'package:video_player/video_player.dart';
-import 'package:http/http.dart' as http;
-import 'package:html/parser.dart' as html_parser;
 import 'dart:convert';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'dart:io';
+
+import 'package:chewie/chewie.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:html/parser.dart' as html_parser;
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
+import 'package:sqflite/sqflite.dart';
+import 'package:video_player/video_player.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
+import 'google_video_proxy.dart';
 
 void main() {
   runApp(const MyApp());
@@ -96,6 +102,20 @@ class VideoResponse {
   }
 }
 
+class VideoStreamResult {
+  final String url;
+  final Map<String, String> headers;
+  final bool isGoogleVideo;
+
+  const VideoStreamResult({
+    required this.url,
+    Map<String, String>? headers,
+    this.isGoogleVideo = false,
+  }) : headers = headers ?? const {};
+
+  bool get hasHeaders => headers.isNotEmpty;
+}
+
 // Database Helper
 class DatabaseHelper {
   static Database? _database;
@@ -109,7 +129,7 @@ class DatabaseHelper {
   }
 
   static Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), dbName);
+    final path = p.join(await getDatabasesPath(), dbName);
     return await openDatabase(path, version: 1, onCreate: _createDb);
   }
 
@@ -139,6 +159,10 @@ class DatabaseHelper {
 // API Service
 class AnimeService {
   static const String baseSiteUrl = 'https://animefire.plus';
+  static const String _googleVideoUserAgent =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1';
+  static const String _bloggerOrigin = 'https://www.blogger.com';
+  static const String _bloggerReferer = 'https://www.blogger.com/';
 
   static Future<List<Anime>> searchAnime(String animeName) async {
     final String searchUrl =
@@ -197,6 +221,8 @@ class AnimeService {
 
   static Future<String> extractVideoURL(String episodeUrl) async {
     try {
+      debugPrint('Extracting video URL from page: $episodeUrl');
+      
       final response = await http.get(Uri.parse(episodeUrl));
       if (response.statusCode != 200) {
         throw Exception('Failed to get video page: ${response.statusCode}');
@@ -204,26 +230,119 @@ class AnimeService {
 
       final document = html_parser.parse(response.body);
 
-      // Try to find video element with data-video-src
-      var videoElement = document.querySelector('video[data-video-src]');
-      if (videoElement != null) {
-        return videoElement.attributes['data-video-src'] ?? '';
+      // Try different selectors for video elements
+      final selectors = [
+        'video',
+        'div[data-video-src]',
+        'div[data-src]',
+        'div[data-url]',
+        'div[data-video]',
+        'div[data-player]',
+        'iframe[src*="video"]',
+        'iframe[src*="player"]',
+      ];
+
+      for (String selector in selectors) {
+        final elements = document.querySelectorAll(selector);
+        if (elements.isNotEmpty) {
+          debugPrint('Found elements with selector: $selector');
+          
+          // Try different attribute names
+          final attributes = [
+            'data-video-src',
+            'data-src', 
+            'data-url',
+            'data-video',
+            'src',
+          ];
+
+          for (var element in elements) {
+            for (String attr in attributes) {
+              final videoSrc = element.attributes[attr];
+              if (videoSrc != null && videoSrc.isNotEmpty) {
+                debugPrint('Found video URL in attribute $attr: $videoSrc');
+                return videoSrc;
+              }
+            }
+          }
+        }
       }
 
-      // Try to find div with data-video-src
-      var divElement = document.querySelector('div[data-video-src]');
-      if (divElement != null) {
-        return divElement.attributes['data-video-src'] ?? '';
+      // If no video element found, try to find in page content
+      debugPrint('No video elements found, searching in page content');
+      
+      // Try to find blogger link
+      final bloggerLink = _findBloggerLink(response.body);
+      if (bloggerLink.isNotEmpty) {
+        debugPrint('Found blogger link: $bloggerLink');
+        return bloggerLink;
       }
 
-      throw Exception('Video source not found');
+      // Try to find direct video URL in content
+      final videoUrlPattern = RegExp(r'https?://[^\s<>"]+?\.(?:mp4|m3u8)');
+      final match = videoUrlPattern.firstMatch(response.body);
+      if (match != null) {
+        final directUrl = match.group(0)!;
+        debugPrint('Found direct video URL: $directUrl');
+        return directUrl;
+      }
+
+      throw Exception('No video source found in the page');
     } catch (e) {
       throw Exception('Error extracting video URL: $e');
     }
   }
 
-  static Future<String> extractActualVideoURL(String videoSrc) async {
+  static Future<VideoStreamResult> extractActualVideoURL(String videoSrc) async {
     try {
+      debugPrint('Processing video source: $videoSrc');
+
+      // If it's a blogger.com URL, extract and process the actual video URL
+      if (videoSrc.contains('blogger.com')) {
+        return await _extractBloggerVideoURL(videoSrc);
+      }
+
+      // If the URL is from animefire.plus, fetch the content
+      if (videoSrc.contains('animefire.plus/video/')) {
+        debugPrint('Found animefire.plus video URL, fetching content...');
+        
+        final response = await http.get(Uri.parse(videoSrc));
+        if (response.statusCode != 200) {
+          throw Exception('Failed to get video data: ${response.statusCode}');
+        }
+
+        try {
+          // Try to parse as JSON first
+          final jsonData = json.decode(response.body);
+          final videoResponse = VideoResponse.fromJson(jsonData);
+          
+          if (videoResponse.data.isNotEmpty) {
+            debugPrint('Found video data with ${videoResponse.data.length} qualities');
+            // Return the first available quality (can be enhanced later for quality selection)
+            return VideoStreamResult(url: videoResponse.data[0].src);
+          }
+        } catch (jsonError) {
+          debugPrint('Failed to parse as JSON, trying other methods...');
+        }
+
+        // Fallback: Try to find direct video URL in content
+        final videoUrlPattern = RegExp(r'https?://[^\s<>"]+?\.(?:mp4|m3u8)');
+        final match = videoUrlPattern.firstMatch(response.body);
+        if (match != null) {
+          final directUrl = match.group(0)!;
+          debugPrint('Found direct video URL: $directUrl');
+          return VideoStreamResult(url: directUrl);
+        }
+
+        // Try to find blogger link in the content
+        final bloggerLink = _findBloggerLink(response.body);
+        if (bloggerLink.isNotEmpty) {
+          debugPrint('Found blogger link: $bloggerLink');
+          return await _extractBloggerVideoURL(bloggerLink);
+        }
+      }
+
+      // Default: try to fetch as JSON
       final response = await http.get(Uri.parse(videoSrc));
       if (response.statusCode != 200) {
         throw Exception('Failed to get video data: ${response.statusCode}');
@@ -236,10 +355,299 @@ class AnimeService {
         throw Exception('No video data found');
       }
 
-      return videoResponse.data[0].src;
+      return VideoStreamResult(url: videoResponse.data[0].src);
     } catch (e) {
       throw Exception('Error extracting actual video URL: $e');
     }
+  }
+
+  // Helper function to find Blogger video links
+  static String _findBloggerLink(String content) {
+    final pattern = RegExp(r'https://www\.blogger\.com/video\.g\?token=([A-Za-z0-9_-]+)');
+    final match = pattern.firstMatch(content);
+    
+    if (match != null) {
+      return match.group(0) ?? '';
+    }
+    
+    return '';
+  }
+
+  // Extract actual video URL from Blogger
+  static Future<VideoStreamResult> _extractBloggerVideoURL(String bloggerUrl) async {
+    try {
+      debugPrint('Extracting actual video URL from Blogger: $bloggerUrl');
+
+      final response = await http.get(
+        Uri.parse(bloggerUrl),
+        headers: {
+          HttpHeaders.userAgentHeader: _googleVideoUserAgent,
+          HttpHeaders.refererHeader: 'https://animefire.plus/',
+        },
+      );
+
+      debugPrint('Blogger response status: ${response.statusCode}');
+      debugPrint('Response headers: ${response.headers}');
+
+      if (response.headers.containsKey('location')) {
+        final location = response.headers['location']!;
+        debugPrint('Found redirect in headers: $location');
+        if (location.contains('.mp4') || location.contains('googlevideo.com') || location.contains('googleusercontent.com')) {
+          return await _createVideoStreamResult(location, referer: bloggerUrl);
+        }
+      }
+
+      final content = response.body;
+      debugPrint('Response body length: ${content.length}');
+
+      if (content.isNotEmpty) {
+        final previewLength = content.length > 2000 ? 2000 : content.length;
+        debugPrint('Response preview: ${content.substring(0, previewLength)}');
+      }
+
+      final videoConfigStart = content.indexOf('VIDEO_CONFIG = ');
+      if (videoConfigStart != -1) {
+        final jsonStart = content.indexOf('{', videoConfigStart);
+        if (jsonStart != -1) {
+          int braceCount = 0;
+          int jsonEnd = jsonStart;
+
+          for (int i = jsonStart; i < content.length; i++) {
+            if (content[i] == '{') {
+              braceCount++;
+            } else if (content[i] == '}') {
+              braceCount--;
+              if (braceCount == 0) {
+                jsonEnd = i;
+                break;
+              }
+            }
+          }
+
+          if (jsonEnd > jsonStart) {
+            final configJson = content.substring(jsonStart, jsonEnd + 1);
+            debugPrint(
+              'Found VIDEO_CONFIG JSON: ${configJson.length > 500 ? '${configJson.substring(0, 500)}...' : configJson}',
+            );
+
+            try {
+              final config = json.decode(configJson);
+              if (config is Map) {
+                if (config.containsKey('streams') && config['streams'] is List) {
+                  final streams = config['streams'] as List;
+                  if (streams.isNotEmpty && streams[0] is Map) {
+                    final firstStream = streams[0] as Map;
+                    if (firstStream.containsKey('play_url')) {
+                      final videoUrl = firstStream['play_url'].toString();
+                      debugPrint('Found video URL in streams[0].play_url: $videoUrl');
+                      return await _createVideoStreamResult(videoUrl, referer: bloggerUrl);
+                    }
+                  }
+                }
+
+                final possibleKeys = ['url', 'stream_url', 'video_url', 'source', 'src'];
+                for (final key in possibleKeys) {
+                  if (config.containsKey(key) && config[key] != null) {
+                    final videoUrl = config[key].toString();
+                    if (videoUrl.isNotEmpty && videoUrl.contains('http')) {
+                      debugPrint('Found video URL in VIDEO_CONFIG[$key]: $videoUrl');
+                      return await _createVideoStreamResult(videoUrl, referer: bloggerUrl);
+                    }
+                  }
+                }
+              }
+            } catch (jsonError) {
+              debugPrint('Failed to parse VIDEO_CONFIG JSON: $jsonError');
+
+              final playUrlPattern = RegExp(r'"play_url"\s*:\s*"([^"]+)"');
+              final playUrlMatch = playUrlPattern.firstMatch(configJson);
+              if (playUrlMatch != null) {
+                final videoUrl = playUrlMatch.group(1)!;
+                debugPrint('Extracted play_url directly from JSON string: $videoUrl');
+                return await _createVideoStreamResult(videoUrl, referer: bloggerUrl);
+              }
+            }
+          }
+        }
+      }
+
+      final patterns = [
+        RegExp(r'https://[^"\s<>]+videoplayback[^"\s<>]*', caseSensitive: false),
+        RegExp(r'https://[^"\s<>]+\.googlevideo\.com[^"\s<>]*', caseSensitive: false),
+        RegExp(r'https://[^"\s<>]+\.googleusercontent\.com[^"\s<>]*videoplayback[^"\s<>]*', caseSensitive: false),
+        RegExp(r'https://[^"\s<>]+\.googleapis\.com[^"\s<>]*', caseSensitive: false),
+        RegExp(r'stream_url.*?"([^"]*)"', caseSensitive: false),
+        RegExp(r'video_url.*?"([^"]*)"', caseSensitive: false),
+        RegExp(r'"url":\s*"([^"]*videoplayback[^"]*)"', caseSensitive: false),
+        RegExp(r'"url":\s*"([^"]*\.mp4[^"]*)"', caseSensitive: false),
+        RegExp(r'https://[^"\s<>]+\.mp4[^"\s<>]*', caseSensitive: false),
+      ];
+
+      for (int i = 0; i < patterns.length; i++) {
+        final pattern = patterns[i];
+        final match = pattern.firstMatch(content);
+        if (match != null) {
+          String videoUrl = match.group(1) ?? match.group(0)!;
+          videoUrl = videoUrl
+              .replaceAll(r'\u003d', '=')
+              .replaceAll(r'\u0026', '&')
+              .replaceAll(r'\\/', '/')
+              .replaceAll(r'\\', '')
+              .replaceAll(r'\/', '/');
+
+          debugPrint('Found video URL with pattern ${i + 1}: $videoUrl');
+
+          if (videoUrl.startsWith('http') && (videoUrl.contains('.mp4') || videoUrl.contains('googlevideo') || videoUrl.contains('googleusercontent'))) {
+            return await _createVideoStreamResult(videoUrl, referer: bloggerUrl);
+          }
+        }
+      }
+
+      final scriptMatches = RegExp(r'<script[^>]*>(.*?)</script>', dotAll: true).allMatches(content);
+      for (final scriptMatch in scriptMatches) {
+        final scriptContent = scriptMatch.group(1) ?? '';
+        final jsPatterns = [
+          RegExp(r'https://[^"]+videoplayback[^"]*'),
+          RegExp(r'https://[^"]+\.googlevideo\.com[^"]*'),
+          RegExp(r'https://[^"]+\.googleusercontent\.com[^"]*videoplayback[^"]*'),
+        ];
+
+        for (final jsPattern in jsPatterns) {
+          final jsMatch = jsPattern.firstMatch(scriptContent);
+          if (jsMatch != null) {
+            final videoUrl = jsMatch.group(0)!;
+            debugPrint('Found video URL in JavaScript: $videoUrl');
+            return await _createVideoStreamResult(videoUrl, referer: bloggerUrl);
+          }
+        }
+      }
+
+      final tokenMatch = RegExp(r'token=([A-Za-z0-9_-]+)').firstMatch(bloggerUrl);
+      if (tokenMatch != null) {
+        final token = tokenMatch.group(1)!;
+        debugPrint('Extracted token: $token');
+
+        final alternativeUrls = [
+          'https://www.blogger.com/video-play/mp4/$token',
+          'https://blogger.googleusercontent.com/video.g?token=$token',
+          'https://redirector.googlevideo.com/videoplayback?token=$token',
+        ];
+
+        for (final altUrl in alternativeUrls) {
+          debugPrint('Trying alternative URL: $altUrl');
+          try {
+            final testResponse = await http.head(Uri.parse(altUrl));
+            if (testResponse.statusCode == 200 || testResponse.statusCode == 302) {
+              debugPrint('Alternative URL works: $altUrl');
+              return await _createVideoStreamResult(altUrl, referer: bloggerUrl);
+            }
+          } catch (e) {
+            debugPrint('Alternative URL failed: $altUrl - $e');
+          }
+        }
+      }
+
+      debugPrint('Could not extract video URL from Blogger response');
+      return VideoStreamResult(url: bloggerUrl);
+    } catch (e) {
+      debugPrint('Error extracting Blogger video URL: $e');
+      return VideoStreamResult(url: bloggerUrl);
+    }
+  }
+
+  static Future<VideoStreamResult> _createVideoStreamResult(
+    String url, {
+    String? referer,
+  }) async {
+    if (url.contains('googlevideo.com') || url.contains('videoplayback')) {
+      debugPrint('Processing Google Video URL for native playback...');
+      return await _processGoogleVideoURL(url, referer: referer);
+    }
+
+    return VideoStreamResult(url: url);
+  }
+
+  // Process Google Video URLs for native compatibility
+  static Future<VideoStreamResult> _processGoogleVideoURL(
+    String googleVideoUrl, {
+    String? referer,
+  }) async {
+    try {
+      debugPrint('Processing Google Video URL for playback: $googleVideoUrl');
+
+      final originalUri = Uri.parse(googleVideoUrl);
+      final sanitizedUri = _sanitizeGoogleVideoUri(originalUri);
+
+      final httpClient = HttpClient();
+      httpClient.userAgent = _googleVideoUserAgent;
+      httpClient.connectionTimeout = const Duration(seconds: 12);
+
+      final request = await httpClient.getUrl(sanitizedUri);
+      request.followRedirects = true;
+      request.headers
+        ..set(HttpHeaders.acceptHeader, 'video/mp4,video/*;q=0.9,*/*;q=0.8')
+        ..set(HttpHeaders.acceptLanguageHeader, 'en-US,en;q=0.9')
+        ..set(HttpHeaders.acceptEncodingHeader, 'identity')
+        ..set(HttpHeaders.rangeHeader, 'bytes=0-1')
+        ..set(HttpHeaders.refererHeader, referer ?? _bloggerReferer)
+        ..set('Origin', _bloggerOrigin)
+        ..set(HttpHeaders.connectionHeader, 'keep-alive');
+
+      final response = await request.close();
+    final effectiveUri = response.redirects.isNotEmpty
+      ? response.redirects.last.location
+      : sanitizedUri;
+      final cookies = response.cookies;
+      debugPrint('Google Video URL response status: ${response.statusCode}');
+      await response.drain();
+      httpClient.close(force: true);
+
+      final cookieHeader = cookies.isEmpty
+          ? ''
+          : cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
+
+      final headers = <String, String>{
+        HttpHeaders.userAgentHeader: _googleVideoUserAgent,
+        HttpHeaders.acceptHeader: 'video/mp4,video/*;q=0.9,*/*;q=0.8',
+        HttpHeaders.acceptLanguageHeader: 'en-US,en;q=0.9',
+        HttpHeaders.acceptEncodingHeader: 'identity',
+        HttpHeaders.refererHeader: referer ?? _bloggerReferer,
+        'Origin': _bloggerOrigin,
+      };
+
+      if (cookieHeader.isNotEmpty) {
+        headers[HttpHeaders.cookieHeader] = cookieHeader;
+      }
+
+      final finalUrl = effectiveUri.toString();
+      debugPrint('Cleaned Google Video URL: $finalUrl');
+
+      return VideoStreamResult(
+        url: finalUrl,
+        headers: headers,
+        isGoogleVideo: true,
+      );
+    } catch (e) {
+      debugPrint('Error processing Google Video URL: $e');
+
+      final fallbackHeaders = {
+        HttpHeaders.userAgentHeader: _googleVideoUserAgent,
+        HttpHeaders.refererHeader: referer ?? _bloggerReferer,
+        'Origin': _bloggerOrigin,
+      };
+
+      return VideoStreamResult(
+        url: googleVideoUrl,
+        headers: fallbackHeaders,
+        isGoogleVideo: true,
+      );
+    }
+  }
+
+  static Uri _sanitizeGoogleVideoUri(Uri uri) {
+    final params = Map<String, String>.from(uri.queryParameters);
+    params.removeWhere((key, value) => value.isEmpty);
+    return uri.replace(queryParameters: params);
   }
 
   static String _treatAnimeName(String animeName) {
@@ -889,6 +1297,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _currentVideoUrl;
+  Map<String, String>? _currentVideoHeaders;
+  bool _showWebViewOption = false;
+  String? _bloggerVideoUrl;
+  GoogleVideoProxy? _googleVideoProxy;
 
   @override
   void initState() {
@@ -902,6 +1314,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _showWebViewOption = false;
+      _bloggerVideoUrl = null;
     });
 
     try {
@@ -914,21 +1328,47 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         throw Exception('URL do vídeo não encontrada na página');
       }
 
+      _bloggerVideoUrl = videoSrc;
+
       // Extract actual video URL from API
-      final actualVideoUrl = await AnimeService.extractActualVideoURL(videoSrc);
-      if (actualVideoUrl.isEmpty) {
+      final actualVideo = await AnimeService.extractActualVideoURL(videoSrc);
+      if (actualVideo.url.isEmpty) {
         throw Exception('URL do vídeo não pôde ser extraída da API');
       }
 
-      _currentVideoUrl = actualVideoUrl;
+      var resolvedVideoUrl = actualVideo.url;
+      final playbackHeaders = <String, String>{
+        HttpHeaders.userAgentHeader:
+            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
+        HttpHeaders.refererHeader: 'https://animefire.plus/',
+      };
+
+      if (actualVideo.hasHeaders) {
+        playbackHeaders.addAll(actualVideo.headers);
+      }
+
+      final forwardedHeaders = Map<String, String>.from(playbackHeaders);
+      var controllerHeaders = Map<String, String>.from(playbackHeaders);
+
+      if (actualVideo.isGoogleVideo) {
+        _googleVideoProxy = GoogleVideoProxy(
+          targetUri: Uri.parse(actualVideo.url),
+          forwardHeaders: forwardedHeaders,
+        );
+        final proxyUri = await _googleVideoProxy!.start();
+        resolvedVideoUrl = proxyUri.toString();
+        controllerHeaders = {};
+        debugPrint('Using local proxy for Google Video: $resolvedVideoUrl');
+        debugPrint('Forwarding remote headers: $forwardedHeaders');
+      }
+
+      _currentVideoUrl = resolvedVideoUrl;
+      _currentVideoHeaders = controllerHeaders;
+      debugPrint('Using playback headers: $_currentVideoHeaders');
 
       _videoPlayerController = VideoPlayerController.networkUrl(
-        Uri.parse(actualVideoUrl),
-        httpHeaders: {
-          'User-Agent':
-              'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
-          'Referer': 'https://animefire.plus/',
-        },
+        Uri.parse(resolvedVideoUrl),
+        httpHeaders: controllerHeaders,
       );
 
       // Add error listener
@@ -966,6 +1406,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       }
     } catch (e) {
       debugPrint('Error initializing video: $e');
+      await _googleVideoProxy?.stop();
+      _googleVideoProxy = null;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -980,12 +1422,41 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       final error = _videoPlayerController!.value.errorDescription;
       debugPrint('Video player error: $error');
       if (mounted) {
+        // Check if this is a Blogger-related error that might benefit from WebView fallback
+        final isBloggerError = error?.contains('OSStatus error -12847') == true ||
+                              error?.contains('media format is not supported') == true ||
+                              error?.contains('CoreMediaErrorDomain error -12939') == true;
+                              
         setState(() {
-          _errorMessage = 'Erro no player: $error';
+          if (isBloggerError) {
+            _errorMessage = 'Erro de compatibilidade detectado. Tente usar o player web alternativo.';
+            // You could add a flag here to show a WebView player button
+            _showWebViewOption = _isIOS && _bloggerVideoUrl != null;
+          } else {
+            _errorMessage = 'Erro no player: $error';
+          }
           _isLoading = false;
         });
       }
     }
+  }
+
+  bool get _isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  void _openWebViewFallback() {
+    final fallbackUrl = _bloggerVideoUrl ?? _currentVideoUrl;
+    if (fallbackUrl == null) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BloggerWebViewScreen(
+          initialUrl: fallbackUrl,
+          title: '${widget.animeTitle} - Ep ${widget.episode.number}',
+        ),
+      ),
+    );
   }
 
   double _calculateAspectRatio() {
@@ -1004,6 +1475,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _chewieController?.dispose();
     _videoPlayerController = null;
     _chewieController = null;
+    _currentVideoHeaders = null;
+    _currentVideoUrl = null;
+
+    if (_googleVideoProxy != null) {
+      await _googleVideoProxy!.stop();
+      _googleVideoProxy = null;
+    }
   }
 
   Widget _buildErrorWidget(String message) {
@@ -1053,6 +1531,31 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 32),
+            if (_showWebViewOption && _bloggerVideoUrl != null) ...[
+              FilledButton.icon(
+                onPressed: _openWebViewFallback,
+                icon: const Icon(Icons.open_in_browser),
+                label: const Text('Abrir player alternativo'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.blueGrey.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Se você estiver usando iPhone/iPad, o player nativo pode não suportar esse formato. O player web alternativo pode contornar essa limitação.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const SizedBox(height: 24),
+            ],
             ElevatedButton.icon(
               onPressed: _initializeVideoPlayer,
               icon: const Icon(Icons.refresh),
@@ -1315,12 +1818,114 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         ],
                       ),
                     ),
+                    if (_isIOS && _bloggerVideoUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: FilledButton.icon(
+                          onPressed: _openWebViewFallback,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: const Text('Abrir player alternativo'),
+                        ),
+                      ),
                   ],
                 )
               : Center(
                   child: _buildErrorWidget('Falha ao inicializar o player'),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+class BloggerWebViewScreen extends StatefulWidget {
+  final String initialUrl;
+  final String title;
+
+  const BloggerWebViewScreen({
+    super.key,
+    required this.initialUrl,
+    required this.title,
+  });
+
+  @override
+  State<BloggerWebViewScreen> createState() => _BloggerWebViewScreenState();
+}
+
+class _BloggerWebViewScreenState extends State<BloggerWebViewScreen> {
+  late final WebViewController _controller;
+  double _progress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) '
+        'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 '
+        'Mobile/15E148 Safari/604.1',
+      )
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            setState(() {
+              _progress = progress / 100.0;
+            });
+          },
+          onPageStarted: (_) {
+            setState(() {
+              _progress = 0;
+            });
+          },
+          onPageFinished: (_) {
+            setState(() {
+              _progress = 1;
+            });
+          },
+          onNavigationRequest: (navigation) {
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.initialUrl));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(
+          widget.title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          if (_progress < 1)
+            LinearProgressIndicator(
+              value: _progress,
+              minHeight: 3,
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Colors.white10,
+            ),
+          Expanded(
+            child: WebViewWidget(controller: _controller),
+          ),
+        ],
       ),
     );
   }
