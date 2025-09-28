@@ -1687,29 +1687,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               ? Center(child: _buildErrorWidget(_errorMessage!))
               : _chewieController != null &&
                     _videoPlayerController?.value.isInitialized == true
-              ? Column(
+              ? ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(
-                                context,
-                              ).shadowColor.withValues(alpha: 0.2),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(
+                              context,
+                            ).shadowColor.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: AspectRatio(
+                          aspectRatio: _calculateAspectRatio(),
+                          child: Chewie(controller: _chewieController!),
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Chewie(controller: _chewieController!),
                       ),
                     ),
+                    const SizedBox(height: 20),
                     Container(
-                      margin: const EdgeInsets.all(16),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
@@ -1801,15 +1804,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                     ).colorScheme.primary,
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    'Fonte: ${Uri.parse(_currentVideoUrl!).host}',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                  Flexible(
+                                    child: Text(
+                                      'Fonte: ${Uri.parse(_currentVideoUrl!).host}',
+                                      style: Theme.of(context).textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1820,7 +1826,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     ),
                     if (_isIOS && _bloggerVideoUrl != null)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.only(top: 12),
                         child: FilledButton.icon(
                           onPressed: _openWebViewFallback,
                           style: FilledButton.styleFrom(
