@@ -1088,51 +1088,6 @@ class _AnimeSearchScreenState extends State<AnimeSearchScreen> {
   }
 }
 
-class _HeroPill extends StatelessWidget {
-  final String label;
-  final IconData icon;
-
-  const _HeroPill({
-    required this.label,
-    this.icon = Icons.auto_awesome,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withValues(alpha: 0.12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: Colors.white,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AnimeResultCard extends StatelessWidget {
   final Anime anime;
   final int index;
@@ -1304,22 +1259,18 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
             pinned: true,
             elevation: 0,
             scrolledUnderElevation: 0,
+            centerTitle: false,
+            title: Text(
+              widget.anime.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.pin,
-              titlePadding: const EdgeInsetsDirectional.only(start: 20, end: 20, bottom: 18),
-              title: Text(
-                widget.anime.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  shadows: [
-                    Shadow(
-                      offset: Offset(0, 1),
-                      blurRadius: 3.0,
-                      color: Colors.black26,
-                    ),
-                  ],
-                ),
-              ),
+              titlePadding: EdgeInsets.zero,
               background: _buildFlexibleHeader(context),
             ),
           ),
@@ -1441,21 +1392,7 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: const [
-                          _HeroPill(
-                            label: 'Player cinematográfico',
-                            icon: Icons.live_tv_rounded,
-                          ),
-                          _HeroPill(
-                            label: 'Atualizações automáticas',
-                            icon: Icons.auto_awesome_rounded,
-                          ),
-                        ],
-                      ),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
