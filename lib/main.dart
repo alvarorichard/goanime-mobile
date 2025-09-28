@@ -1301,6 +1301,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   bool _showWebViewOption = false;
   String? _bloggerVideoUrl;
   GoogleVideoProxy? _googleVideoProxy;
+  bool _isGoogleStream = false;
 
   @override
   void initState() {
@@ -1349,6 +1350,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
       final forwardedHeaders = Map<String, String>.from(playbackHeaders);
       var controllerHeaders = Map<String, String>.from(playbackHeaders);
+      _isGoogleStream = actualVideo.isGoogleVideo;
 
       if (actualVideo.isGoogleVideo) {
         _googleVideoProxy = GoogleVideoProxy(
@@ -1408,6 +1410,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       debugPrint('Error initializing video: $e');
       await _googleVideoProxy?.stop();
       _googleVideoProxy = null;
+      _isGoogleStream = false;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -1477,11 +1480,284 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _chewieController = null;
     _currentVideoHeaders = null;
     _currentVideoUrl = null;
+    _isGoogleStream = false;
 
     if (_googleVideoProxy != null) {
       await _googleVideoProxy!.stop();
       _googleVideoProxy = null;
     }
+  }
+
+  Widget _buildLoadedContent(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 64),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      colorScheme.primary.withValues(alpha: 0.85),
+                      colorScheme.surface,
+                    ],
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Agora reproduzindo',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: colorScheme.onPrimary.withValues(alpha: 0.8),
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: AspectRatio(
+                        aspectRatio: _calculateAspectRatio(),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Container(color: Colors.black),
+                            Chewie(controller: _chewieController!),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Transform.translate(
+                offset: const Offset(0, -40),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(28, 32, 28, 24),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.shadowColor.withValues(alpha: 0.1),
+                          blurRadius: 40,
+                          offset: const Offset(0, 20),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.animeTitle,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Episódio ${widget.episode.number}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: _buildMetadataPills(context),
+                        ),
+                        if (_currentVideoUrl != null) ...[
+                          const SizedBox(height: 24),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary.withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.sensors_rounded,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Servidor em uso',
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        Uri.parse(_currentVideoUrl!).host,
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.textTheme.bodySmall?.color
+                                              ?.withAlpha(170),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: _copyStreamLink,
+                                  tooltip: 'Copiar link da stream',
+                                  icon: const Icon(Icons.copy_rounded),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 28),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _initializeVideoPlayer,
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  textStyle: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Sincronizar stream'),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _currentVideoUrl == null ? null : _copyStreamLink,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                ),
+                                icon: const Icon(Icons.link_rounded),
+                                label: const Text('Copiar link'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_hasWebFallback) ...[
+                          const SizedBox(height: 14),
+                          FilledButton.icon(
+                            onPressed: _openWebViewFallback,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colorScheme.secondary,
+                              foregroundColor: colorScheme.onSecondary,
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              textStyle: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            icon: const Icon(Icons.open_in_new_rounded),
+                            label: const Text('Abrir player alternativo'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildMetadataPills(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final tags = <String>{
+      'Qualidade dinâmica',
+      'Player otimizado',
+    };
+
+    final lowerEpisode = widget.episode.number.toLowerCase();
+    if (lowerEpisode.contains('dub') || lowerEpisode.contains('dublado')) {
+      tags.add('Dublado');
+    } else if (lowerEpisode.contains('leg')) {
+      tags.add('Legendado');
+    }
+
+    if (_isGoogleStream) {
+      tags.add('Google Video');
+    }
+
+    return tags
+        .map(
+          (tag) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.bolt_rounded,
+                  size: 16,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  tag,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSecondaryContainer,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  bool get _hasWebFallback => _isIOS && _bloggerVideoUrl != null;
+
+  void _copyStreamLink() {
+    if (_currentVideoUrl == null) return;
+    Clipboard.setData(ClipboardData(text: _currentVideoUrl!));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Link do stream copiado para a área de transferência'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _buildErrorWidget(String message) {
@@ -1687,162 +1963,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               ? Center(child: _buildErrorWidget(_errorMessage!))
               : _chewieController != null &&
                     _videoPlayerController?.value.isInitialized == true
-              ? ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(
-                              context,
-                            ).shadowColor.withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: AspectRatio(
-                          aspectRatio: _calculateAspectRatio(),
-                          child: Chewie(controller: _chewieController!),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(
-                              context,
-                            ).shadowColor.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Theme.of(context).colorScheme.primary,
-                                      Theme.of(context).colorScheme.secondary,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.play_circle_filled,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      widget.animeTitle,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Episódio ${widget.episode.number}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_currentVideoUrl != null) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.source,
-                                    size: 16,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      'Fonte: ${Uri.parse(_currentVideoUrl!).host}',
-                                      style: Theme.of(context).textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (_isIOS && _bloggerVideoUrl != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: FilledButton.icon(
-                          onPressed: _openWebViewFallback,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          icon: const Icon(Icons.open_in_new_rounded),
-                          label: const Text('Abrir player alternativo'),
-                        ),
-                      ),
-                  ],
-                )
+              ? _buildLoadedContent(context)
               : Center(
                   child: _buildErrorWidget('Falha ao inicializar o player'),
                 ),
