@@ -21,29 +21,17 @@ class LogoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Try to load the custom logo, fallback to icon
-    return Container(
-      height: size,
-      child: Image.asset(
-        'assets/images/logo goanime.png',
-        height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback to icon if image fails to load or doesn't exist
-          return Icon(
-            Icons.play_circle_filled,
-            size: size,
-            color: color ?? Colors.white70,
-            shadows: const [
-              Shadow(
-                offset: Offset(0, 1),
-                blurRadius: 3.0,
-                color: Colors.black26,
-              ),
-            ],
-          );
-        },
-      ),
+    return Icon(
+      Icons.play_circle_filled,
+      size: size,
+      color: color ?? Colors.white70,
+      shadows: const [
+        Shadow(
+          offset: Offset(0, 1),
+          blurRadius: 3.0,
+          color: Colors.black26,
+        ),
+      ],
     );
   }
 }
@@ -436,7 +424,7 @@ class _AnimeSearchScreenState extends State<AnimeSearchScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -854,7 +842,7 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface
-                                                .withOpacity(0.6),
+                                                .withValues(alpha: 0.6),
                                           ),
                                     ),
                                   ],
@@ -1028,7 +1016,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -1135,7 +1123,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               Theme.of(context).colorScheme.surface,
             ],
           ),
@@ -1151,13 +1139,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.surface.withOpacity(0.9),
+                          ).colorScheme.surface.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
                               color: Theme.of(
                                 context,
-                              ).shadowColor.withOpacity(0.1),
+                              ).shadowColor.withValues(alpha: 0.1),
                               blurRadius: 10,
                               spreadRadius: 2,
                             ),
@@ -1183,7 +1171,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   ?.copyWith(
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.onSurface.withOpacity(0.6),
+                                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                             ),
                           ],
@@ -1207,7 +1195,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             BoxShadow(
                               color: Theme.of(
                                 context,
-                              ).shadowColor.withOpacity(0.2),
+                              ).shadowColor.withValues(alpha: 0.2),
                               blurRadius: 10,
                               spreadRadius: 2,
                             ),
@@ -1227,7 +1215,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           BoxShadow(
                             color: Theme.of(
                               context,
-                            ).shadowColor.withOpacity(0.1),
+                            ).shadowColor.withValues(alpha: 0.1),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),
@@ -1296,7 +1284,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.primaryContainer.withOpacity(0.3),
+                                ).colorScheme.primaryContainer.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(

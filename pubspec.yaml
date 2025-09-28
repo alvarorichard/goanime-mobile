@@ -57,6 +57,13 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+# Force update of transitive dependencies to latest versions
+dependency_overrides:
+  characters: ^1.4.1
+  material_color_utilities: ^0.13.0
+  meta: ^1.17.0
+  test_api: ^0.7.7
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -67,10 +74,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  # To add assets to your application, add an assets section, like this:
-  assets:
-    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
