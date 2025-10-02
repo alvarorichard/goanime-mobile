@@ -47,6 +47,8 @@ dependencies:
   path: ^1.8.3
   # WebView fallback for iOS playback
   webview_flutter: ^4.5.0
+  # Image caching for better performance
+  cached_network_image: ^3.3.1
 
 dev_dependencies:
   flutter_test:

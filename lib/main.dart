@@ -14,6 +14,9 @@ import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'google_video_proxy.dart';
+import 'models/anilist_models.dart';
+import 'services/anilist_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 void main() {
   runApp(const MyApp());
@@ -69,11 +72,27 @@ class Episode {
 class Anime {
   final String name;
   final String url;
+  MediaDetails? aniListData;
+  bool isLoadingAniList = false;
 
-  Anime({required this.name, required this.url});
+  Anime({
+    required this.name, 
+    required this.url,
+    this.aniListData,
+  });
 
   @override
   String toString() => name;
+
+  String get imageUrl => aniListData?.coverImage.best ?? '';
+  String get bannerUrl => aniListData?.bannerImage ?? '';
+  String get description => aniListData?.description ?? '';
+  int? get malId => aniListData?.idMal;
+  int? get anilistId => aniListData?.id;
+  List<String> get genres => aniListData?.genres ?? [];
+  String? get status => aniListData?.status;
+  int? get episodeCount => aniListData?.episodes;
+  double? get averageScore => aniListData?.averageScore;
 }
 
 class VideoData {
@@ -187,9 +206,35 @@ class AnimeService {
         }
       }
 
+      // Enrich all animes with AniList data in parallel
+      await Future.wait(
+        animes.map((anime) => enrichAnimeWithAniList(anime)),
+      );
+
       return animes;
     } catch (e) {
       throw Exception('Error searching anime: $e');
+    }
+  }
+
+  /// Enriches an anime with data from AniList
+  static Future<void> enrichAnimeWithAniList(Anime anime) async {
+    try {
+      anime.isLoadingAniList = true;
+      
+      final aniListResponse = await AniListService.fetchAnimeFromAniList(anime.name);
+      
+      if (aniListResponse != null) {
+        anime.aniListData = aniListResponse.data.media;
+        debugPrint('[AnimeService] Enriched ${anime.name} with AniList data - '
+            'ID: ${anime.anilistId}, Cover: ${anime.imageUrl}');
+      } else {
+        debugPrint('[AnimeService] No AniList data found for ${anime.name}');
+      }
+    } catch (e) {
+      debugPrint('[AnimeService] Failed to enrich ${anime.name} with AniList: $e');
+    } finally {
+      anime.isLoadingAniList = false;
     }
   }
 
@@ -1104,11 +1149,12 @@ class _AnimeResultCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final indexLabel = (index + 1).toString().padLeft(2, '0');
+    final hasImage = anime.imageUrl.isNotEmpty;
 
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
-  splashColor: colorScheme.primary.withValues(alpha: 0.08),
+      splashColor: colorScheme.primary.withValues(alpha: 0.08),
       highlightColor: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
@@ -1133,40 +1179,43 @@ class _AnimeResultCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colorScheme.primaryContainer.withValues(alpha: 0.8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withValues(alpha: 0.22),
-                      blurRadius: 14,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  indexLabel,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
+              // Anime Cover Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 80,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                   ),
+                  child: hasImage
+                      ? CachedNetworkImage(
+                          imageUrl: anime.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) {
+                            return _buildPlaceholder(colorScheme, indexLabel, theme);
+                          },
+                        )
+                      : _buildPlaceholder(colorScheme, indexLabel, theme),
                 ),
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       anime.name,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -1174,17 +1223,77 @@ class _AnimeResultCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      'Toque para abrir a lista de episódios',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.72),
-                        letterSpacing: 0.1,
+                    if (anime.genres.isNotEmpty) ...[
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: anime.genres.take(2).map((genre) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              genre,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                    ],
+                    if (anime.averageScore != null) ...[
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: Colors.amber.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${(anime.averageScore! / 10).toStringAsFixed(1)}/10',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface.withValues(alpha: 0.75),
+                            ),
+                          ),
+                          if (anime.episodeCount != null) ...[
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.movie_filter_rounded,
+                              size: 16,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${anime.episodeCount} eps',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurface.withValues(alpha: 0.75),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ] else
+                      Text(
+                        'Toque para ver episódios',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.72),
+                          letterSpacing: 0.1,
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -1194,12 +1303,46 @@ class _AnimeResultCard extends StatelessWidget {
                 child: Icon(
                   Icons.play_arrow_rounded,
                   color: colorScheme.primary,
-                  size: 20,
+                  size: 22,
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(ColorScheme colorScheme, String indexLabel, ThemeData theme) {
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primaryContainer.withValues(alpha: 0.8),
+            colorScheme.secondaryContainer.withValues(alpha: 0.6),
+          ],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.movie_rounded,
+            size: 32,
+            color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '#$indexLabel',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1312,28 +1455,64 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
 
   Widget _buildFlexibleHeader(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final hasBanner = widget.anime.bannerUrl.isNotEmpty;
+    final hasImage = widget.anime.imageUrl.isNotEmpty;
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.primary,
-                colorScheme.secondary,
-              ],
+        // Background - Banner or Gradient
+        if (hasBanner)
+          CachedNetworkImage(
+            imageUrl: widget.anime.bannerUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colorScheme.primary,
+                    colorScheme.secondary,
+                  ],
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) {
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colorScheme.primary,
+                      colorScheme.secondary,
+                    ],
+                  ),
+                ),
+              );
+            },
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary,
+                  colorScheme.secondary,
+                ],
+              ),
             ),
           ),
-        ),
+        // Overlay gradient
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.black.withValues(alpha: 0.2),
-                Colors.black.withValues(alpha: 0.55),
+                Colors.black.withValues(alpha: 0.3),
+                Colors.black.withValues(alpha: 0.65),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -1349,7 +1528,7 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
                     color: Colors.white.withValues(alpha: 0.14),
@@ -1357,42 +1536,144 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
                       color: Colors.white.withValues(alpha: 0.25),
                     ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const LogoWidget(size: 38, color: Colors.white),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.anime.name,
-                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                      // Cover image
+                      if (hasImage)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: CachedNetworkImage(
+                            imageUrl: widget.anime.imageUrl,
+                            width: 90,
+                            height: 130,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: 90,
+                              height: 130,
+                              color: Colors.white.withValues(alpha: 0.1),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white70,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Escolha um episódio para continuar sua maratona.',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: Colors.white.withValues(alpha: 0.85),
-                                        letterSpacing: 0.2,
-                                      ),
-                                ),
-                              ],
+                              ),
                             ),
+                            errorWidget: (context, url, error) {
+                              return Container(
+                                width: 90,
+                                height: 130,
+                                color: Colors.white.withValues(alpha: 0.1),
+                                child: const Icon(
+                                  Icons.movie_rounded,
+                                  size: 40,
+                                  color: Colors.white54,
+                                ),
+                              );
+                            },
                           ),
-                        ],
+                        )
+                      else
+                        const LogoWidget(size: 38, color: Colors.white),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.anime.name,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            if (widget.anime.genres.isNotEmpty) ...[
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: widget.anime.genres.take(3).map((genre) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      genre,
+                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            if (widget.anime.averageScore != null || widget.anime.episodeCount != null)
+                              Row(
+                                children: [
+                                  if (widget.anime.averageScore != null) ...[
+                                    Icon(
+                                      Icons.star_rounded,
+                                      size: 16,
+                                      color: Colors.amber.shade400,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${(widget.anime.averageScore! / 10).toStringAsFixed(1)}',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ],
+                                  if (widget.anime.episodeCount != null) ...[
+                                    if (widget.anime.averageScore != null)
+                                      Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                                        width: 4,
+                                        height: 4,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white54,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    Icon(
+                                      Icons.movie_filter_rounded,
+                                      size: 16,
+                                      color: Colors.white70,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${widget.anime.episodeCount} eps',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            color: Colors.white70,
+                                          ),
+                                    ),
+                                  ],
+                                ],
+                              )
+                            else
+                              Text(
+                                'Escolha um episódio para assistir',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Colors.white.withValues(alpha: 0.85),
+                                      letterSpacing: 0.2,
+                                    ),
+                              ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
