@@ -9,16 +9,7 @@
 
 A Flutter-based mobile implementation of the popular [GoAnime TUI](https://github.com/alvarorichard/GoAnime) application. This mobile app brings the anime streaming experience to your iOS and Android devices with a beautiful, intuitive interface.
 
-## ✨ New: AniList API Integration
 
-This app now features **full AniList API integration**, providing:
-- 🎨 **High-quality anime covers** in search results
-- 🖼️ **Cinematic banners** in episode screens
-- 🏷️ **Genre tags** and detailed information
-- ⭐ **Ratings and episode counts** from AniList
-- 🚀 **Cached images** for better performance
-
-[📖 Read the full integration documentation](ANILIST_INTEGRATION.md)
 
 > [!WARNING]
 > Running this code may cause unexpected behavior, mild existential crises, or the sudden urge to refactor everything. Proceed with caution! This mobile project is still in early development phase and may be unstable.
