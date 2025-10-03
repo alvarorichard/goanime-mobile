@@ -36,16 +36,16 @@ class AniListService {
   ''';
 
   /// Fetches anime information from AniList API
-  static Future<AniListResponse?> fetchAnimeFromAniList(String animeName) async {
+  static Future<AniListResponse?> fetchAnimeFromAniList(
+    String animeName,
+  ) async {
     try {
       final cleanedName = _cleanTitle(animeName);
       debugPrint('[AniList] Querying for: $cleanedName');
 
       final requestBody = json.encode({
         'query': _graphQLQuery,
-        'variables': {
-          'search': cleanedName,
-        },
+        'variables': {'search': cleanedName},
       });
 
       final response = await http.post(
@@ -63,17 +63,19 @@ class AniListService {
       }
 
       final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
-      
+
       if (jsonResponse.containsKey('errors')) {
         debugPrint('[AniList] GraphQL errors: ${jsonResponse['errors']}');
         return null;
       }
 
       final aniListResponse = AniListResponse.fromJson(jsonResponse);
-      
-      debugPrint('[AniList] Success: ID ${aniListResponse.data.media.id}, '
-          'Title: ${aniListResponse.data.media.title.preferred}');
-      
+
+      debugPrint(
+        '[AniList] Success: ID ${aniListResponse.data.media.id}, '
+        'Title: ${aniListResponse.data.media.title.preferred}',
+      );
+
       return aniListResponse;
     } catch (e) {
       debugPrint('[AniList] Exception: $e');
@@ -85,29 +87,41 @@ class AniListService {
   static String _cleanTitle(String title) {
     // Remove common suffixes and patterns
     String cleaned = title;
-    
+
     // Remove source tags like [AnimeFire] or [AllAnime]
-    cleaned = cleaned.replaceAll(RegExp(r'[🔥🌐]?\[(?:animefire|allanime)\]\s*', caseSensitive: false), '');
-    
+    cleaned = cleaned.replaceAll(
+      RegExp(r'[🔥🌐]?\[(?:animefire|allanime)\]\s*', caseSensitive: false),
+      '',
+    );
+
     // Remove language indicators
-    cleaned = cleaned.replaceAll(RegExp(r'(?:dublado|legendado|dub|sub)\s*', caseSensitive: false), '');
-    
+    cleaned = cleaned.replaceAll(
+      RegExp(r'(?:dublado|legendado|dub|sub)\s*', caseSensitive: false),
+      '',
+    );
+
     // Remove "Todos os Episodios" and similar
-    cleaned = cleaned.replaceAll(RegExp(r'todos\s+os\s+episodios', caseSensitive: false), '');
-    
+    cleaned = cleaned.replaceAll(
+      RegExp(r'todos\s+os\s+episodios', caseSensitive: false),
+      '',
+    );
+
     // Remove season/episode indicators like "2.0 A2" or "3.5"
     cleaned = cleaned.replaceAll(RegExp(r'\s+\d+(\.\d+)?\s+A\d+\s*$'), '');
     cleaned = cleaned.replaceAll(RegExp(r'\s+\d+(\.\d+)?\s*$'), '');
-    
+
     // Remove content in parentheses if it contains language info
     cleaned = cleaned.replaceAll(
-      RegExp(r'\s*\([^)]*(?:dublado|legendado|dub|sub)[^)]*\)', caseSensitive: false),
+      RegExp(
+        r'\s*\([^)]*(?:dublado|legendado|dub|sub)[^)]*\)',
+        caseSensitive: false,
+      ),
       '',
     );
-    
+
     // Remove episode count like "(171 episodes)"
     cleaned = cleaned.replaceAll(RegExp(r'\s*\(\d+\s+episodes?\)'), '');
-    
+
     // Remove special titles and additions after colon
     cleaned = cleaned.replaceAll(
       RegExp(
@@ -116,10 +130,10 @@ class AniListService {
       ),
       '',
     );
-    
+
     // Normalize whitespace
     cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
-    
+
     debugPrint('[AniList] Cleaned title: "$title" -> "$cleaned"');
     return cleaned;
   }
@@ -172,7 +186,9 @@ class AniListService {
       );
 
       if (response.statusCode != 200) {
-        debugPrint('[AniList] Error fetching by MAL ID: HTTP ${response.statusCode}');
+        debugPrint(
+          '[AniList] Error fetching by MAL ID: HTTP ${response.statusCode}',
+        );
         return null;
       }
 
@@ -232,7 +248,9 @@ class AniListService {
       );
 
       if (response.statusCode != 200) {
-        debugPrint('[AniList] Error fetching by ID: HTTP ${response.statusCode}');
+        debugPrint(
+          '[AniList] Error fetching by ID: HTTP ${response.statusCode}',
+        );
         return null;
       }
 

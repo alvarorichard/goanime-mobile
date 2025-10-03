@@ -7,8 +7,8 @@ class GoogleVideoProxy {
   GoogleVideoProxy({
     required Uri targetUri,
     required Map<String, String> forwardHeaders,
-  })  : _targetUri = targetUri,
-        _forwardHeaders = Map.unmodifiable(forwardHeaders);
+  }) : _targetUri = targetUri,
+       _forwardHeaders = Map.unmodifiable(forwardHeaders);
 
   final Uri _targetUri;
   final Map<String, String> _forwardHeaders;
@@ -88,7 +88,7 @@ class GoogleVideoProxy {
     // Apply persisted headers first.
     _forwardHeaders.forEach((key, value) {
       if (_shouldSkipRequestHeader(key)) return;
-  upstreamRequest.headers.set(key, value);
+      upstreamRequest.headers.set(key, value);
     });
 
     // Forward range and other relevant headers from the local request.
@@ -102,16 +102,16 @@ class GoogleVideoProxy {
     for (final headerName in forwardedHeaders) {
       final value = request.headers.value(headerName);
       if (value != null && value.isNotEmpty) {
-  upstreamRequest.headers.set(headerName, value);
+        upstreamRequest.headers.set(headerName, value);
       }
     }
 
     // Ensure Accept-Encoding is identity if not overridden.
-  if (upstreamRequest.headers.value(HttpHeaders.acceptEncodingHeader) ==
+    if (upstreamRequest.headers.value(HttpHeaders.acceptEncodingHeader) ==
         null) {
       final encoding =
           _forwardHeaders[HttpHeaders.acceptEncodingHeader] ?? 'identity';
-  upstreamRequest.headers.set(HttpHeaders.acceptEncodingHeader, encoding);
+      upstreamRequest.headers.set(HttpHeaders.acceptEncodingHeader, encoding);
     }
 
     HttpClientResponse upstreamResponse;

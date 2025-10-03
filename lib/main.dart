@@ -16,6 +16,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'google_video_proxy.dart';
 import 'models/anilist_models.dart';
 import 'services/anilist_service.dart';
+import 'services/allanime_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 void main() {
@@ -65,13 +66,23 @@ class Episode {
   String toString() => number;
 }
 
+enum AnimeSource { animeFire, allAnime }
+
 class Anime {
   final String name;
   final String url;
+  final AnimeSource source;
+  final String? allAnimeId; // ID do AllAnime para buscar episódios
   MediaDetails? aniListData;
   bool isLoadingAniList = false;
 
-  Anime({required this.name, required this.url, this.aniListData});
+  Anime({
+    required this.name,
+    required this.url,
+    this.source = AnimeSource.animeFire,
+    this.allAnimeId,
+    this.aniListData,
+  });
 
   @override
   String toString() => name;
@@ -85,6 +96,8 @@ class Anime {
   String? get status => aniListData?.status;
   int? get episodeCount => aniListData?.episodes;
   double? get averageScore => aniListData?.averageScore;
+  String get sourceName =>
+      source == AnimeSource.animeFire ? 'AnimeFire' : 'AllAnime';
 }
 
 class VideoData {
@@ -177,13 +190,48 @@ class AnimeService {
   static const String _bloggerReferer = 'https://www.blogger.com/';
 
   static Future<List<Anime>> searchAnime(String animeName) async {
+    try {
+      debugPrint('[AnimeService] Searching in multiple sources: $animeName');
+
+      // Buscar simultaneamente em AnimeFire e AllAnime
+      final results = await Future.wait([
+        _searchAnimeFire(animeName),
+        _searchAllAnime(animeName),
+      ]);
+
+      // Combinar resultados
+      final List<Anime> allAnimes = [];
+      allAnimes.addAll(results[0]); // AnimeFire
+      allAnimes.addAll(results[1]); // AllAnime
+
+      debugPrint(
+        '[AnimeService] Total results: ${allAnimes.length} (AnimeFire: ${results[0].length}, AllAnime: ${results[1].length})',
+      );
+
+      // Enriquecer com dados do AniList em paralelo
+      await Future.wait(
+        allAnimes.map((anime) => enrichAnimeWithAniList(anime)),
+      );
+
+      return allAnimes;
+    } catch (e) {
+      throw Exception('Error searching anime: $e');
+    }
+  }
+
+  /// Busca no AnimeFire
+  static Future<List<Anime>> _searchAnimeFire(String animeName) async {
     final String searchUrl =
         '$baseSiteUrl/pesquisar/${_treatAnimeName(animeName)}';
 
     try {
-      final response = await http.get(Uri.parse(searchUrl));
+      final response = await http
+          .get(Uri.parse(searchUrl))
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode != 200) {
-        throw Exception('Failed to search anime: ${response.statusCode}');
+        debugPrint('[AnimeFire] Search failed: ${response.statusCode}');
+        return [];
       }
 
       final document = html_parser.parse(response.body);
@@ -194,16 +242,50 @@ class AnimeService {
         final name = element.text.trim();
         final url = element.attributes['href'] ?? '';
         if (name.isNotEmpty && url.isNotEmpty) {
-          animes.add(Anime(name: name, url: url));
+          animes.add(
+            Anime(name: name, url: url, source: AnimeSource.animeFire),
+          );
         }
       }
 
-      // Enrich all animes with AniList data in parallel
-      await Future.wait(animes.map((anime) => enrichAnimeWithAniList(anime)));
-
+      debugPrint('[AnimeFire] Found ${animes.length} results');
       return animes;
     } catch (e) {
-      throw Exception('Error searching anime: $e');
+      debugPrint('[AnimeFire] Search error: $e');
+      return [];
+    }
+  }
+
+  /// Busca no AllAnime
+  static Future<List<Anime>> _searchAllAnime(String animeName) async {
+    try {
+      final response = await AllAnimeService.searchAnime(animeName);
+
+      if (response == null || response.shows.isEmpty) {
+        debugPrint('[AllAnime] No results found');
+        return [];
+      }
+
+      List<Anime> animes = [];
+      for (var show in response.shows) {
+        final episodeInfo = show.episodeCount > 0
+            ? ' (${show.episodeCount} eps)'
+            : '';
+        animes.add(
+          Anime(
+            name: '${show.displayName}$episodeInfo',
+            url: show.id, // Para AllAnime, a "URL" é o ID
+            source: AnimeSource.allAnime,
+            allAnimeId: show.id,
+          ),
+        );
+      }
+
+      debugPrint('[AllAnime] Found ${animes.length} results');
+      return animes;
+    } catch (e) {
+      debugPrint('[AllAnime] Search error: $e');
+      return [];
     }
   }
 
@@ -234,9 +316,31 @@ class AnimeService {
     }
   }
 
-  static Future<List<Episode>> getAnimeEpisodes(String animeUrl) async {
+  static Future<List<Episode>> getAnimeEpisodes(Anime anime) async {
     try {
-      final response = await http.get(Uri.parse(animeUrl));
+      debugPrint(
+        '[AnimeService] Getting episodes for ${anime.name} from ${anime.sourceName}',
+      );
+
+      if (anime.source == AnimeSource.allAnime) {
+        return await _getEpisodesFromAllAnime(anime);
+      } else {
+        return await _getEpisodesFromAnimeFire(anime.url);
+      }
+    } catch (e) {
+      throw Exception('Error getting episodes: $e');
+    }
+  }
+
+  /// Busca episódios do AnimeFire
+  static Future<List<Episode>> _getEpisodesFromAnimeFire(
+    String animeUrl,
+  ) async {
+    try {
+      final response = await http
+          .get(Uri.parse(animeUrl))
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode != 200) {
         throw Exception('Failed to get episodes: ${response.statusCode}');
       }
@@ -255,9 +359,43 @@ class AnimeService {
         }
       }
 
+      debugPrint('[AnimeFire] Found ${episodes.length} episodes');
       return episodes;
     } catch (e) {
-      throw Exception('Error getting episodes: $e');
+      debugPrint('[AnimeFire] Get episodes error: $e');
+      throw Exception('Error getting episodes from AnimeFire: $e');
+    }
+  }
+
+  /// Busca episódios do AllAnime
+  static Future<List<Episode>> _getEpisodesFromAllAnime(Anime anime) async {
+    try {
+      final animeId = anime.allAnimeId ?? anime.url;
+      final episodesList = await AllAnimeService.getEpisodesList(animeId);
+
+      if (episodesList.isEmpty) {
+        debugPrint('[AllAnime] No episodes found');
+        return [];
+      }
+
+      List<Episode> episodes = [];
+      for (var episodeNo in episodesList) {
+        final displayNumber = episodeNo.contains('.')
+            ? 'Episódio $episodeNo'
+            : 'Episódio $episodeNo';
+        episodes.add(
+          Episode(
+            number: displayNumber,
+            url: episodeNo, // Para AllAnime, guardamos o número do episódio
+          ),
+        );
+      }
+
+      debugPrint('[AllAnime] Found ${episodes.length} episodes');
+      return episodes;
+    } catch (e) {
+      debugPrint('[AllAnime] Get episodes error: $e');
+      throw Exception('Error getting episodes from AllAnime: $e');
     }
   }
 
@@ -1294,14 +1432,49 @@ class _AnimeResultCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      anime.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            anime.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: anime.source == AnimeSource.animeFire
+                                ? Colors.orange.withValues(alpha: 0.2)
+                                : Colors.purple.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: anime.source == AnimeSource.animeFire
+                                  ? Colors.orange.withValues(alpha: 0.5)
+                                  : Colors.purple.withValues(alpha: 0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            anime.sourceName,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: anime.source == AnimeSource.animeFire
+                                  ? Colors.orange.shade800
+                                  : Colors.purple.shade800,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     if (anime.genres.isNotEmpty) ...[
@@ -2013,7 +2186,7 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
     });
 
     try {
-      final episodes = await AnimeService.getAnimeEpisodes(widget.anime.url);
+      final episodes = await AnimeService.getAnimeEpisodes(widget.anime);
       setState(() {
         _episodes = episodes;
         _isLoading = false;
@@ -2482,7 +2655,11 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            VideoPlayerScreen(episode: episode, animeTitle: widget.anime.name),
+            VideoPlayerScreen(
+          episode: episode,
+          animeTitle: widget.anime.name,
+          anime: widget.anime, // Passar anime completo
+        ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
             position: animation.drive(
@@ -2619,11 +2796,13 @@ class _EpisodeCard extends StatelessWidget {
 class VideoPlayerScreen extends StatefulWidget {
   final Episode episode;
   final String animeTitle;
+  final Anime? anime; // Objeto anime completo para saber a fonte
 
   const VideoPlayerScreen({
     super.key,
     required this.episode,
     required this.animeTitle,
+    this.anime,
   });
 
   @override
@@ -2662,45 +2841,81 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       // Cleanup previous controllers
       await _cleanupControllers();
 
-      // Extract video URL from episode page
-      final videoSrc = await AnimeService.extractVideoURL(widget.episode.url);
-      if (videoSrc.isEmpty) {
-        throw Exception('URL do vídeo não encontrada na página');
+      String videoSrc;
+
+      // Verificar se é AllAnime
+      if (widget.anime?.source == AnimeSource.allAnime) {
+        debugPrint('[VideoPlayer] Getting AllAnime episode URL');
+        
+        final animeId = widget.anime!.allAnimeId ?? widget.anime!.url;
+        final episodeNo = widget.episode.url; // Para AllAnime, url é o número do episódio
+        
+        // Buscar URL do episódio no AllAnime
+        final allAnimeUrl = await AllAnimeService.getEpisodeURL(animeId, episodeNo);
+        
+        if (allAnimeUrl == null || allAnimeUrl.isEmpty) {
+          throw Exception('URL do vídeo não encontrada no AllAnime');
+        }
+        
+        videoSrc = allAnimeUrl;
+        debugPrint('[VideoPlayer] AllAnime video URL: $videoSrc');
+      } else {
+        // AnimeFire - comportamento padrão
+        debugPrint('[VideoPlayer] Getting AnimeFire episode URL');
+        videoSrc = await AnimeService.extractVideoURL(widget.episode.url);
+        
+        if (videoSrc.isEmpty) {
+          throw Exception('URL do vídeo não encontrada na página');
+        }
       }
 
       _bloggerVideoUrl = videoSrc;
 
-      // Extract actual video URL from API
-      final actualVideo = await AnimeService.extractActualVideoURL(videoSrc);
-      if (actualVideo.url.isEmpty) {
-        throw Exception('URL do vídeo não pôde ser extraída da API');
-      }
+      String resolvedVideoUrl;
+      Map<String, String> controllerHeaders;
 
-      var resolvedVideoUrl = actualVideo.url;
-      final playbackHeaders = <String, String>{
-        HttpHeaders.userAgentHeader:
-            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
-        HttpHeaders.refererHeader: 'https://animefire.plus/',
-      };
+      // Para AllAnime, usar URL diretamente sem processamento adicional
+      if (widget.anime?.source == AnimeSource.allAnime) {
+        debugPrint('[VideoPlayer] Using AllAnime URL directly for streaming');
+        resolvedVideoUrl = videoSrc;
+        controllerHeaders = {
+          HttpHeaders.userAgentHeader:
+              'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
+        };
+        _isGoogleStream = false;
+      } else {
+        // AnimeFire - processar com extractActualVideoURL
+        final actualVideo = await AnimeService.extractActualVideoURL(videoSrc);
+        if (actualVideo.url.isEmpty) {
+          throw Exception('URL do vídeo não pôde ser extraída da API');
+        }
 
-      if (actualVideo.hasHeaders) {
-        playbackHeaders.addAll(actualVideo.headers);
-      }
+        resolvedVideoUrl = actualVideo.url;
+        final playbackHeaders = <String, String>{
+          HttpHeaders.userAgentHeader:
+              'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
+          HttpHeaders.refererHeader: 'https://animefire.plus/',
+        };
 
-      final forwardedHeaders = Map<String, String>.from(playbackHeaders);
-      var controllerHeaders = Map<String, String>.from(playbackHeaders);
-      _isGoogleStream = actualVideo.isGoogleVideo;
+        if (actualVideo.hasHeaders) {
+          playbackHeaders.addAll(actualVideo.headers);
+        }
 
-      if (actualVideo.isGoogleVideo) {
-        _googleVideoProxy = GoogleVideoProxy(
-          targetUri: Uri.parse(actualVideo.url),
-          forwardHeaders: forwardedHeaders,
-        );
-        final proxyUri = await _googleVideoProxy!.start();
-        resolvedVideoUrl = proxyUri.toString();
-        controllerHeaders = {};
-        debugPrint('Using local proxy for Google Video: $resolvedVideoUrl');
-        debugPrint('Forwarding remote headers: $forwardedHeaders');
+        final forwardedHeaders = Map<String, String>.from(playbackHeaders);
+        controllerHeaders = Map<String, String>.from(playbackHeaders);
+        _isGoogleStream = actualVideo.isGoogleVideo;
+
+        if (actualVideo.isGoogleVideo) {
+          _googleVideoProxy = GoogleVideoProxy(
+            targetUri: Uri.parse(actualVideo.url),
+            forwardHeaders: forwardedHeaders,
+          );
+          final proxyUri = await _googleVideoProxy!.start();
+          resolvedVideoUrl = proxyUri.toString();
+          controllerHeaders = {};
+          debugPrint('Using local proxy for Google Video: $resolvedVideoUrl');
+          debugPrint('Forwarding remote headers: $forwardedHeaders');
+        }
       }
 
       _currentVideoUrl = resolvedVideoUrl;

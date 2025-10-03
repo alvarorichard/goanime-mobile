@@ -62,7 +62,9 @@ class MediaDetails {
       id: json['id'] as int,
       idMal: json['idMal'] as int?,
       title: MediaTitle.fromJson(json['title'] as Map<String, dynamic>),
-      coverImage: CoverImage.fromJson(json['coverImage'] as Map<String, dynamic>),
+      coverImage: CoverImage.fromJson(
+        json['coverImage'] as Map<String, dynamic>,
+      ),
       bannerImage: json['bannerImage'] as String?,
       description: json['description'] as String?,
       episodes: json['episodes'] as int?,
@@ -71,11 +73,12 @@ class MediaDetails {
       seasonYear: json['seasonYear'] as int?,
       averageScore: (json['averageScore'] as num?)?.toDouble(),
       popularity: json['popularity'] as int?,
-      genres: (json['genres'] as List<dynamic>?)
+      genres:
+          (json['genres'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      format: json['format'] != null 
+      format: json['format'] != null
           ? MediaFormat.fromString(json['format'] as String)
           : null,
     );
@@ -87,11 +90,7 @@ class MediaTitle {
   final String? english;
   final String? native;
 
-  MediaTitle({
-    this.romaji,
-    this.english,
-    this.native,
-  });
+  MediaTitle({this.romaji, this.english, this.native});
 
   factory MediaTitle.fromJson(Map<String, dynamic> json) {
     return MediaTitle(
@@ -110,12 +109,7 @@ class CoverImage {
   final String? medium;
   final String? color;
 
-  CoverImage({
-    this.extraLarge,
-    this.large,
-    this.medium,
-    this.color,
-  });
+  CoverImage({this.extraLarge, this.large, this.medium, this.color});
 
   factory CoverImage.fromJson(Map<String, dynamic> json) {
     return CoverImage(
@@ -203,11 +197,7 @@ class EnrichedAnime {
   final String url;
   final MediaDetails? aniListData;
 
-  EnrichedAnime({
-    required this.name,
-    required this.url,
-    this.aniListData,
-  });
+  EnrichedAnime({required this.name, required this.url, this.aniListData});
 
   String get imageUrl => aniListData?.coverImage.best ?? '';
   String get bannerUrl => aniListData?.bannerImage ?? '';
