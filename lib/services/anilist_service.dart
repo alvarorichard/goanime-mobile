@@ -119,8 +119,8 @@ class AniListService {
       '',
     );
 
-    // Remove episode count like "(171 episodes)"
-    cleaned = cleaned.replaceAll(RegExp(r'\s*\(\d+\s+episodes?\)'), '');
+    // Remove episode count like "(171 episodes)" or "(1 eps)"
+    cleaned = cleaned.replaceAll(RegExp(r'\s*\(\d+\s+(?:episodes?|eps)\)'), '');
 
     // Remove special titles and additions after colon
     cleaned = cleaned.replaceAll(

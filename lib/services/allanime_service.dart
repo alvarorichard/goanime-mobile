@@ -15,7 +15,7 @@ class AllAnimeService {
     try {
       debugPrint('[AllAnime] Searching for: $query');
 
-      // GraphQL query exato do Curd
+      // GraphQL query com thumbnail
       const searchGql = '''
         query(\$search: SearchInput, \$limit: Int, \$page: Int, \$translationType: VaildTranslationTypeEnumType, \$countryOrigin: VaildCountryOriginEnumType) {
           shows(search: \$search, limit: \$limit, page: \$page, translationType: \$translationType, countryOrigin: \$countryOrigin) {
@@ -24,6 +24,7 @@ class AllAnimeService {
               name
               englishName
               availableEpisodes
+              thumbnail
               __typename
             }
           }
@@ -314,12 +315,14 @@ class AllAnimeShow {
   final String name;
   final String? englishName;
   final Map<String, dynamic>? availableEpisodes;
+  final String? thumbnail;
 
   AllAnimeShow({
     required this.id,
     required this.name,
     this.englishName,
     this.availableEpisodes,
+    this.thumbnail,
   });
 
   factory AllAnimeShow.fromJson(Map<String, dynamic> json) {
@@ -328,6 +331,7 @@ class AllAnimeShow {
       name: json['name'] ?? '',
       englishName: json['englishName'],
       availableEpisodes: json['availableEpisodes'] as Map<String, dynamic>?,
+      thumbnail: json['thumbnail'],
     );
   }
 

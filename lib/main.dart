@@ -73,6 +73,7 @@ class Anime {
   final String url;
   final AnimeSource source;
   final String? allAnimeId; // ID do AllAnime para buscar episódios
+  final String? fallbackImageUrl; // Imagem de fallback antes do AniList carregar
   MediaDetails? aniListData;
   bool isLoadingAniList = false;
 
@@ -82,12 +83,14 @@ class Anime {
     this.source = AnimeSource.animeFire,
     this.allAnimeId,
     this.aniListData,
+    this.fallbackImageUrl,
   });
 
   @override
   String toString() => name;
 
-  String get imageUrl => aniListData?.coverImage.best ?? '';
+  String get imageUrl =>
+      aniListData?.coverImage.best ?? fallbackImageUrl ?? '';
   String get bannerUrl => aniListData?.bannerImage ?? '';
   String get description => aniListData?.description ?? '';
   int? get malId => aniListData?.idMal;
@@ -271,12 +274,19 @@ class AnimeService {
         final episodeInfo = show.episodeCount > 0
             ? ' (${show.episodeCount} eps)'
             : '';
+        
+        // Usar thumbnail do AllAnime como fallback se disponível
+        final fallbackImage = show.thumbnail?.isNotEmpty == true
+            ? show.thumbnail!
+            : null;
+        
         animes.add(
           Anime(
             name: '${show.displayName}$episodeInfo',
             url: show.id, // Para AllAnime, a "URL" é o ID
             source: AnimeSource.allAnime,
             allAnimeId: show.id,
+            fallbackImageUrl: fallbackImage, // Fallback até AniList carregar
           ),
         );
       }
