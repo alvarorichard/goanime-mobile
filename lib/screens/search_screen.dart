@@ -6,6 +6,7 @@ import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../services/search_history_service.dart';
 import '../main.dart';
+import 'episode_list_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -264,7 +265,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => EpisodeListScreen(anime: results.first),
+            builder: (context) => ModernEpisodeListScreen(anime: results.first),
           ),
         );
       } else {
@@ -315,7 +316,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => EpisodeListScreen(anime: anime),
+                      builder: (context) => ModernEpisodeListScreen(anime: anime),
                     ),
                   );
                 },

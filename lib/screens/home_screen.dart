@@ -5,6 +5,7 @@ import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../main.dart';
 import 'search_screen.dart';
+import 'episode_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -253,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => EpisodeListScreen(anime: results.first),
+            builder: (context) => ModernEpisodeListScreen(anime: results.first),
           ),
         );
       } else {
@@ -304,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => EpisodeListScreen(anime: anime),
+                      builder: (context) => ModernEpisodeListScreen(anime: anime),
                     ),
                   );
                 },

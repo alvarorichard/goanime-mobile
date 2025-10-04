@@ -19,6 +19,7 @@ import 'services/anilist_service.dart';
 import 'services/allanime_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'screens/home_screen.dart';
+import 'screens/video_player_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -2666,7 +2667,7 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            VideoPlayerScreen(
+            ModernVideoPlayerScreen(
           episode: episode,
           animeTitle: widget.anime.name,
           anime: widget.anime, // Passar anime completo
