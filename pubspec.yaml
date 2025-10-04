@@ -49,6 +49,8 @@ dependencies:
   webview_flutter: ^4.5.0
   # Image caching for better performance
   cached_network_image: ^3.3.1
+  # Local storage for search history
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

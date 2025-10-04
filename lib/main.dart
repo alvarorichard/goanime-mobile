@@ -18,6 +18,7 @@ import 'models/anilist_models.dart';
 import 'services/anilist_service.dart';
 import 'services/allanime_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -972,7 +973,7 @@ class _MyAppState extends State<MyApp> {
           themeMode: _themeProvider.isDarkMode
               ? ThemeMode.dark
               : ThemeMode.light,
-          home: AnimeSearchScreen(themeProvider: _themeProvider),
+          home: const HomeScreen(),
         );
       },
     );
