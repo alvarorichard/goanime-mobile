@@ -13,16 +13,26 @@ import 'package:sqflite/sqflite.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
+
 import 'google_video_proxy.dart';
 import 'models/anilist_models.dart';
 import 'services/anilist_service.dart';
 import 'services/allanime_service.dart';
+import 'services/locale_service.dart';
+import 'l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'screens/home_screen.dart';
 import 'screens/video_player_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LocaleService(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 // Logo Widget Helper
@@ -925,12 +935,22 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final localeService = Provider.of<LocaleService>(context);
+    
     return AnimatedBuilder(
       animation: _themeProvider,
       builder: (context, _) {
         return MaterialApp(
-          title: 'goanime',
+          title: 'GoAnime',
           debugShowCheckedModeBanner: false,
+          locale: localeService.locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.deepPurple,

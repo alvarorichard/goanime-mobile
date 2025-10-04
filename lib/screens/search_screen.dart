@@ -5,8 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../services/search_history_service.dart';
-import '../main.dart';
-import 'episode_list_screen.dart';
+import '../l10n/app_localizations.dart';
+import 'source_selection_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -35,20 +35,24 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   
   // Filtros
   int? _selectedGenre;
-  final List<Map<String, dynamic>> _genres = [
-    {'id': JikanGenreIds.action, 'name': 'Ação', 'icon': Icons.flash_on},
-    {'id': JikanGenreIds.adventure, 'name': 'Aventura', 'icon': Icons.explore},
-    {'id': JikanGenreIds.comedy, 'name': 'Comédia', 'icon': Icons.emoji_emotions},
-    {'id': JikanGenreIds.drama, 'name': 'Drama', 'icon': Icons.theater_comedy},
-    {'id': JikanGenreIds.fantasy, 'name': 'Fantasia', 'icon': Icons.auto_awesome},
-    {'id': JikanGenreIds.horror, 'name': 'Horror', 'icon': Icons.dark_mode},
-    {'id': JikanGenreIds.mystery, 'name': 'Mistério', 'icon': Icons.search},
-    {'id': JikanGenreIds.romance, 'name': 'Romance', 'icon': Icons.favorite},
-    {'id': JikanGenreIds.sciFi, 'name': 'Sci-Fi', 'icon': Icons.rocket_launch},
-    {'id': JikanGenreIds.sliceOfLife, 'name': 'Slice of Life', 'icon': Icons.wb_sunny},
-    {'id': JikanGenreIds.sports, 'name': 'Esportes', 'icon': Icons.sports_soccer},
-    {'id': JikanGenreIds.supernatural, 'name': 'Supernatural', 'icon': Icons.auto_fix_high},
-  ];
+  
+  List<Map<String, dynamic>> _getGenres() {
+    final l10n = AppLocalizations.of(context);
+    return [
+      {'id': JikanGenreIds.action, 'name': l10n.action, 'icon': Icons.flash_on},
+      {'id': JikanGenreIds.adventure, 'name': l10n.adventure, 'icon': Icons.explore},
+      {'id': JikanGenreIds.comedy, 'name': l10n.comedy, 'icon': Icons.emoji_emotions},
+      {'id': JikanGenreIds.drama, 'name': l10n.drama, 'icon': Icons.theater_comedy},
+      {'id': JikanGenreIds.fantasy, 'name': l10n.fantasy, 'icon': Icons.auto_awesome},
+      {'id': JikanGenreIds.horror, 'name': l10n.horror, 'icon': Icons.dark_mode},
+      {'id': JikanGenreIds.mystery, 'name': l10n.mystery, 'icon': Icons.search},
+      {'id': JikanGenreIds.romance, 'name': l10n.romance, 'icon': Icons.favorite},
+      {'id': JikanGenreIds.sciFi, 'name': l10n.sciFi, 'icon': Icons.rocket_launch},
+      {'id': JikanGenreIds.sliceOfLife, 'name': l10n.sliceOfLife, 'icon': Icons.wb_sunny},
+      {'id': JikanGenreIds.sports, 'name': l10n.sports, 'icon': Icons.sports_soccer},
+      {'id': JikanGenreIds.supernatural, 'name': l10n.supernatural, 'icon': Icons.auto_fix_high},
+    ];
+  }
 
   @override
   void initState() {
@@ -219,129 +223,16 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     // Salva no histórico
     await SearchHistoryService.saveSearch(anime.title);
     
-    // Mostra loading
+    // Navega para tela de seleção de fonte
     if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: Colors.orange),
-              const SizedBox(height: 16),
-              Text(
-                'Buscando ${anime.title}...',
-                style: const TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SourceSelectionScreen(
+          animeTitle: anime.title,
+          imageUrl: anime.imageUrl,
+          myAnimeListUrl: 'https://myanimelist.net/anime/${anime.malId}',
         ),
-      ),
-    );
-
-    try {
-      // Busca o anime no AllAnime/AnimeFire
-      final results = await AnimeService.searchAnime(anime.title);
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Remove loading
-
-      if (results.isEmpty) {
-        _showErrorDialog('Anime não encontrado', 
-          'Não foi possível encontrar "${anime.title}" no AllAnime ou AnimeFire.');
-        return;
-      }
-
-      // Se encontrou apenas um, vai direto para episódios
-      if (results.length == 1) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ModernEpisodeListScreen(anime: results.first),
-          ),
-        );
-      } else {
-        // Se encontrou vários, mostra diálogo para escolher
-        _showAnimeSelectionDialog(anime.title, results);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Remove loading
-      _showErrorDialog('Erro', 'Erro ao buscar anime: $e');
-    }
-  }
-
-  void _showAnimeSelectionDialog(String searchTerm, List<Anime> results) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Selecione a versão',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: results.length,
-            itemBuilder: (context, index) {
-              final anime = results[index];
-              return ListTile(
-                leading: Icon(
-                  anime.source == AnimeSource.allAnime 
-                    ? Icons.star 
-                    : Icons.local_fire_department,
-                  color: Colors.orange,
-                ),
-                title: Text(
-                  anime.name,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                subtitle: Text(
-                  anime.sourceName,
-                  style: TextStyle(color: Colors.grey[400]),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ModernEpisodeListScreen(anime: anime),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.orange)),
-          ),
-        ],
       ),
     );
   }
@@ -472,19 +363,22 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Widget _buildGenreFilters() {
+    final l10n = AppLocalizations.of(context);
+    final genres = _getGenres();
+    
     return Container(
       height: 50,
       margin: const EdgeInsets.only(bottom: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _genres.length + 1,
+        itemCount: genres.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
-                label: const Text('Todos'),
+                label: Text(l10n.allGenres),
                 labelStyle: TextStyle(
                   color: _selectedGenre == null ? Colors.white : Colors.white70,
                   fontWeight: _selectedGenre == null ? FontWeight.bold : FontWeight.normal,
@@ -497,7 +391,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             );
           }
           
-          final genre = _genres[index - 1];
+          final genre = genres[index - 1];
           final isSelected = _selectedGenre == genre['id'];
           
           return Padding(

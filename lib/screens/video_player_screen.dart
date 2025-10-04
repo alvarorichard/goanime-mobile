@@ -7,6 +7,7 @@ import 'package:chewie/chewie.dart';
 import '../main.dart';
 import '../google_video_proxy.dart';
 import '../services/allanime_service.dart';
+import '../l10n/app_localizations.dart';
 
 class ModernVideoPlayerScreen extends StatefulWidget {
   final Episode episode;
@@ -251,7 +252,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Link copiado!'),
+        content: Text(AppLocalizations.of(context).linkCopied),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -284,9 +285,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             child: const Icon(Icons.error_outline, color: Colors.red, size: 48),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Erro no Player',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context).playerError,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -303,7 +304,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             ElevatedButton.icon(
               onPressed: _openWebViewFallback,
               icon: const Icon(Icons.open_in_browser),
-              label: const Text('Player Alternativo'),
+              label: Text(AppLocalizations.of(context).alternativePlayer),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B35),
                 foregroundColor: Colors.white,
@@ -316,7 +317,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           ElevatedButton.icon(
             onPressed: _initializeVideoPlayer,
             icon: const Icon(Icons.refresh),
-            label: const Text('Tentar Novamente'),
+            label: Text(AppLocalizations.of(context).retry),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
@@ -373,7 +374,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  'Episódio ${widget.episode.number}',
+                  AppLocalizations.of(context).episode(widget.episode.number),
                   style: TextStyle(
                     color: Colors.orange.withValues(alpha: 0.9),
                     fontSize: 13,
@@ -430,9 +431,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Carregando stream...',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).loadingStream,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -440,7 +441,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Preparando o melhor servidor para você',
+              AppLocalizations.of(context).preparingServer,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 14,
@@ -457,7 +458,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       height: MediaQuery.of(context).size.height - 200,
       padding: const EdgeInsets.all(24),
       child: Center(
-        child: _buildErrorWidget(_errorMessage ?? 'Erro desconhecido'),
+        child: _buildErrorWidget(_errorMessage ?? AppLocalizations.of(context).error),
       ),
     );
   }
@@ -518,7 +519,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Episódio ${widget.episode.number}',
+                AppLocalizations.of(context).episode(widget.episode.number),
                 style: const TextStyle(
                   color: Color(0xFFFF6B35),
                   fontSize: 16,
@@ -532,9 +533,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildTag('⚡ Qualidade dinâmica', Colors.purple),
-                  _buildTag('🎯 Player otimizado', Colors.blue),
-                  if (_isGoogleStream) _buildTag('☁️ Google Video', Colors.green),
+                  _buildTag(AppLocalizations.of(context).dynamicQuality, Colors.purple),
+                  _buildTag(AppLocalizations.of(context).optimizedPlayer, Colors.blue),
+                  if (_isGoogleStream) _buildTag(AppLocalizations.of(context).googleVideo, Colors.green),
                 ],
               ),
 
@@ -565,9 +566,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Servidor em uso',
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context).serverInUse,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -588,7 +589,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                       IconButton(
                         onPressed: _copyStreamLink,
                         icon: const Icon(Icons.copy, color: Colors.orange),
-                        tooltip: 'Copiar link',
+                        tooltip: AppLocalizations.of(context).copyLink,
                       ),
                     ],
                   ),
@@ -603,7 +604,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _initializeVideoPlayer,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Sincronizar'),
+                      label: Text(AppLocalizations.of(context).syncStream),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF6B35),
                         foregroundColor: Colors.white,
@@ -619,7 +620,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _currentVideoUrl == null ? null : _copyStreamLink,
                       icon: const Icon(Icons.link),
-                      label: const Text('Copiar link'),
+                      label: Text(AppLocalizations.of(context).copyLink),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.orange,
                         side: const BorderSide(color: Colors.orange),
@@ -640,7 +641,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _openWebViewFallback,
                     icon: const Icon(Icons.open_in_browser),
-                    label: const Text('Abrir player alternativo'),
+                    label: Text(AppLocalizations.of(context).alternativePlayer),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepPurple,
                       foregroundColor: Colors.white,

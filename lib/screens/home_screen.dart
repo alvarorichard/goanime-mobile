@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
-import '../main.dart';
+import '../l10n/app_localizations.dart';
 import 'search_screen.dart';
-import 'episode_list_screen.dart';
+import 'settings_screen.dart';
+import 'genre_animes_screen.dart';
+import 'source_selection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -98,17 +100,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadAllData() async {
-    // Carrega dados com delays para respeitar rate limit
+    // Carrega dados com delays para respeitar rate limit da Jikan API
     _loadCurrentSeason();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 600));
     _loadTopAnimes();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 600));
     _loadActionAnimes();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 600));
     _loadRomanceAnimes();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 600));
     _loadComedyAnimes();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 600));
     _loadFantasyAnimes();
   }
 
@@ -163,7 +165,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadRomanceAnimes() async {
     setState(() => _isLoadingRomance = true);
     try {
+      debugPrint('Loading Romance animes with genre ID: ${JikanGenreIds.romance}');
       final animes = await _jikanService.getAnimesByGenre(JikanGenreIds.romance, limit: 15);
+      debugPrint('Loaded ${animes.length} romance animes');
       if (mounted) {
         setState(() {
           _romanceAnimes = animes;
@@ -195,7 +199,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadFantasyAnimes() async {
     setState(() => _isLoadingFantasy = true);
     try {
+      debugPrint('Loading Fantasy animes with genre ID: ${JikanGenreIds.fantasy}');
       final animes = await _jikanService.getAnimesByGenre(JikanGenreIds.fantasy, limit: 15);
+      debugPrint('Loaded ${animes.length} fantasy animes');
       if (mounted) {
         setState(() {
           _fantasyAnimes = animes;
@@ -208,135 +214,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _onAnimeTap(JikanAnime anime) async {
-    // Mostra loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: Colors.orange),
-              const SizedBox(height: 16),
-              Text(
-                'Buscando ${anime.title}...',
-                style: const TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+  void _onAnimeTap(JikanAnime anime) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SourceSelectionScreen(
+          animeTitle: anime.title,
+          imageUrl: anime.imageUrl,
+          myAnimeListUrl: 'https://myanimelist.net/anime/${anime.malId}',
         ),
-      ),
-    );
-
-    try {
-      // Busca o anime no AllAnime/AnimeFire
-      final results = await AnimeService.searchAnime(anime.title);
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Remove loading
-
-      if (results.isEmpty) {
-        _showErrorDialog('Anime não encontrado', 
-          'Não foi possível encontrar "${anime.title}" no AllAnime ou AnimeFire.');
-        return;
-      }
-
-      // Se encontrou apenas um, vai direto para episódios
-      if (results.length == 1) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ModernEpisodeListScreen(anime: results.first),
-          ),
-        );
-      } else {
-        // Se encontrou vários, mostra diálogo para escolher
-        _showAnimeSelectionDialog(anime.title, results);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Remove loading
-      _showErrorDialog('Erro', 'Erro ao buscar anime: $e');
-    }
-  }
-
-  void _showAnimeSelectionDialog(String searchTerm, List<Anime> results) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Selecione a versão',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: results.length,
-            itemBuilder: (context, index) {
-              final anime = results[index];
-              return ListTile(
-                leading: Icon(
-                  anime.source == AnimeSource.allAnime 
-                    ? Icons.star 
-                    : Icons.local_fire_department,
-                  color: Colors.orange,
-                ),
-                title: Text(
-                  anime.name,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                subtitle: Text(
-                  anime.sourceName,
-                  style: TextStyle(color: Colors.grey[400]),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ModernEpisodeListScreen(anime: anime),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.orange)),
-          ),
-        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1E),
       extendBodyBehindAppBar: true,
@@ -360,70 +253,82 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   const SizedBox(height: 32),
                   
-                  // Seção: Destaques da Temporada
+                                    // Seção: Destaques da Temporada
                   _buildModernSection(
-                    title: 'Destaques da Temporada',
-                    icon: Icons.whatshot,
+                    title: l10n.seasonHighlights,
+                    icon: Icons.movie_filter,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
                     ),
                     animes: _seasonAnimes,
                     isLoading: _isLoadingSeason,
+                    sectionId: 'season',
+                    genreId: null,
                   ),
                   
                   // Seção: Top Animes
                   _buildModernSection(
-                    title: 'Top Animes',
+                    title: l10n.topAnime,
                     icon: Icons.star,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFFD93D), Color(0xFFFFA500)],
                     ),
                     animes: _topAnimes,
                     isLoading: _isLoadingTop,
+                    sectionId: 'top',
+                    genreId: null,
                   ),
                   
                   // Seção: Ação
                   _buildModernSection(
-                    title: 'Ação',
+                    title: l10n.action,
                     icon: Icons.flash_on,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF6C5CE7), Color(0xFFA29BFE)],
                     ),
                     animes: _actionAnimes,
                     isLoading: _isLoadingAction,
+                    sectionId: 'action',
+                    genreId: JikanGenreIds.action,
                   ),
                   
                   // Seção: Romance
                   _buildModernSection(
-                    title: 'Romance',
+                    title: l10n.romance,
                     icon: Icons.favorite,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B9D), Color(0xFFC44569)],
                     ),
                     animes: _romanceAnimes,
                     isLoading: _isLoadingRomance,
+                    sectionId: 'romance',
+                    genreId: JikanGenreIds.romance,
                   ),
                   
                   // Seção: Comédia
                   _buildModernSection(
-                    title: 'Comédia',
+                    title: l10n.comedy,
                     icon: Icons.emoji_emotions,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF00D2FF), Color(0xFF3A7BD5)],
                     ),
                     animes: _comedyAnimes,
                     isLoading: _isLoadingComedy,
+                    sectionId: 'comedy',
+                    genreId: JikanGenreIds.comedy,
                   ),
                   
                   // Seção: Fantasia
                   _buildModernSection(
-                    title: 'Fantasia',
+                    title: l10n.fantasy,
                     icon: Icons.auto_awesome,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                     ),
                     animes: _fantasyAnimes,
                     isLoading: _isLoadingFantasy,
+                    sectionId: 'fantasy',
+                    genreId: JikanGenreIds.fantasy,
                   ),
                   
                   const SizedBox(height: 48),
@@ -532,12 +437,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
         ),
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.settings, color: Colors.white),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         const SizedBox(width: 8),
       ],
     );
   }
 
   Widget _buildHeroBanner(JikanAnime anime) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       height: 500,
       margin: const EdgeInsets.only(top: 0),
@@ -607,14 +529,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.whatshot, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
+                        const Icon(Icons.whatshot, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
                         Text(
-                          'EM ALTA',
-                          style: TextStyle(
+                          l10n.trending.toUpperCase(),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -700,9 +622,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ElevatedButton.icon(
                     onPressed: () => _onAnimeTap(anime),
                     icon: const Icon(Icons.play_arrow, size: 28),
-                    label: const Text(
-                      'ASSISTIR AGORA',
-                      style: TextStyle(
+                    label: Text(
+                      l10n.watchNow.toUpperCase(),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
@@ -734,7 +656,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required Gradient gradient,
     required List<JikanAnime> animes,
     required bool isLoading,
+    String? sectionId,
+    int? genreId,
   }) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 32),
       child: Column(
@@ -772,19 +697,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
-                  child: const Row(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GenreAnimesScreen(
+                          title: title,
+                          icon: icon,
+                          gradient: gradient,
+                          genreId: genreId,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Ver Todos',
-                        style: TextStyle(
+                        l10n.seeAll,
+                        style: const TextStyle(
                           color: Colors.orange,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_ios, color: Colors.orange, size: 14),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_ios, color: Colors.orange, size: 14),
                     ],
                   ),
                 ),
@@ -805,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         itemCount: animes.length,
                         itemBuilder: (context, index) {
-                          return _buildModernAnimeCard(animes[index], gradient);
+                          return _buildModernAnimeCard(animes[index], gradient, sectionId ?? title, index);
                         },
                       ),
           ),
@@ -814,7 +751,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildModernAnimeCard(JikanAnime anime, Gradient gradient) {
+  Widget _buildModernAnimeCard(JikanAnime anime, Gradient gradient, String sectionId, int index) {
     return GestureDetector(
       onTap: () => _onAnimeTap(anime),
       child: Container(
@@ -825,7 +762,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           children: [
             // Card com imagem
             Hero(
-              tag: 'anime_${anime.malId}',
+              tag: 'anime_${sectionId}_${anime.malId}_$index',
               child: Container(
                 height: 220,
                 decoration: BoxDecoration(
