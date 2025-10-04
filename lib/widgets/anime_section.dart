@@ -11,14 +11,14 @@ class AnimeSection extends StatelessWidget {
   final bool showLargeCards;
 
   const AnimeSection({
-    Key? key,
+    super.key,
     required this.title,
     required this.animes,
     this.isLoading = false,
     this.onSeeAll,
     this.onAnimeTap,
     this.showLargeCards = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/jikan_models.dart';
 
@@ -40,7 +41,7 @@ class JikanService {
         throw Exception('Failed to load top animes: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching top animes: $e');
+      debugPrint('Error fetching top animes: $e');
       return [];
     }
   }
@@ -64,7 +65,7 @@ class JikanService {
         throw Exception('Failed to load current season animes: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching current season animes: $e');
+      debugPrint('Error fetching current season animes: $e');
       return [];
     }
   }
@@ -105,7 +106,7 @@ class JikanService {
         throw Exception('Failed to load animes by genre: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching animes by genre: $e');
+      debugPrint('Error fetching animes by genre: $e');
       return [];
     }
   }
@@ -129,7 +130,7 @@ class JikanService {
         throw Exception('Failed to load popular animes: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching popular animes: $e');
+      debugPrint('Error fetching popular animes: $e');
       return [];
     }
   }
@@ -153,7 +154,7 @@ class JikanService {
         throw Exception('Failed to load airing animes: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching airing animes: $e');
+      debugPrint('Error fetching airing animes: $e');
       return [];
     }
   }
@@ -178,7 +179,7 @@ class JikanService {
               try {
                 animes.add(JikanAnime.fromJson(entry));
               } catch (e) {
-                print('Error parsing recommendation entry: $e');
+                debugPrint('Error parsing recommendation entry: $e');
               }
             }
           }
@@ -195,7 +196,7 @@ class JikanService {
         throw Exception('Failed to load recommended animes: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching recommended animes: $e');
+      debugPrint('Error fetching recommended animes: $e');
       return [];
     }
   }
@@ -215,7 +216,7 @@ class JikanService {
         throw Exception('Failed to load anime: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching anime by id: $e');
+      debugPrint('Error fetching anime by id: $e');
       return null;
     }
   }
@@ -243,7 +244,7 @@ class JikanService {
         throw Exception('Failed to search animes: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error searching animes: $e');
+      debugPrint('Error searching animes: $e');
       return [];
     }
   }

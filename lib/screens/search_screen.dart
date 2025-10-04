@@ -8,7 +8,7 @@ import '../services/search_history_service.dart';
 import '../main.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({Key? key}) : super(key: key);
+  const SearchScreen({super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -120,7 +120,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         });
       }
     } catch (e) {
-      print('Error loading trending animes: $e');
+      debugPrint('Error loading trending animes: $e');
       if (mounted) setState(() => _isLoadingTrending = false);
     }
   }
@@ -141,7 +141,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           results.add(searchResults.first);
         }
       } catch (e) {
-        print('Error loading recent search: $e');
+        debugPrint('Error loading recent search: $e');
       }
     }
     
@@ -176,7 +176,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         });
       }
     } catch (e) {
-      print('Error searching animes: $e');
+      debugPrint('Error searching animes: $e');
       if (mounted) setState(() => _isSearching = false);
     }
   }
@@ -227,7 +227,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.8),
+            color: Colors.black.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -379,7 +379,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           end: Alignment.bottomRight,
           colors: [
             const Color(0xFF0F0F1E),
-            const Color(0xFF1A1A2E).withOpacity(0.8),
+            const Color(0xFF1A1A2E).withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -402,10 +402,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
@@ -416,7 +416,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                         style: const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: InputDecoration(
                           hintText: 'Buscar animes...',
-                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                           prefixIcon: const Icon(Icons.search, color: Colors.orange),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -456,8 +456,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                     child: ActionChip(
                       label: Text(suggestion),
                       labelStyle: const TextStyle(color: Colors.white),
-                      backgroundColor: Colors.orange.withOpacity(0.2),
-                      side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                      backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                      side: BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
                       onPressed: () => _selectSearchQuery(suggestion),
                     ),
                   );
@@ -490,7 +490,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 ),
                 selected: _selectedGenre == null,
                 selectedColor: Colors.orange,
-                backgroundColor: Colors.white.withOpacity(0.1),
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
                 onSelected: (_) => _selectGenre(null),
               ),
             );
@@ -514,7 +514,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               ),
               selected: isSelected,
               selectedColor: Colors.orange,
-              backgroundColor: Colors.white.withOpacity(0.1),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
               onSelected: (_) => _selectGenre(genre['id'] as int),
             ),
           );
@@ -573,7 +573,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               ),
               onTap: () => _selectSearchQuery(query),
             );
-          }).toList(),
+          }),
           const SizedBox(height: 32),
         ],
         
@@ -615,11 +615,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.white.withOpacity(0.3)),
+            Icon(Icons.search_off, size: 64, color: Colors.white.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
               'Nenhum resultado encontrado',
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 16),
             ),
           ],
         ),
@@ -699,7 +699,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
+                          color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -769,7 +769,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
+                          color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(

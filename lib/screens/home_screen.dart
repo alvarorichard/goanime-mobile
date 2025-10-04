@@ -7,7 +7,7 @@ import '../main.dart';
 import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -122,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Error loading season animes: $e');
+      debugPrint('Error loading season animes: $e');
       if (mounted) setState(() => _isLoadingSeason = false);
     }
   }
@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Error loading top animes: $e');
+      debugPrint('Error loading top animes: $e');
       if (mounted) setState(() => _isLoadingTop = false);
     }
   }
@@ -154,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Error loading action animes: $e');
+      debugPrint('Error loading action animes: $e');
       if (mounted) setState(() => _isLoadingAction = false);
     }
   }
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Error loading romance animes: $e');
+      debugPrint('Error loading romance animes: $e');
       if (mounted) setState(() => _isLoadingRomance = false);
     }
   }
@@ -186,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Error loading comedy animes: $e');
+      debugPrint('Error loading comedy animes: $e');
       if (mounted) setState(() => _isLoadingComedy = false);
     }
   }
@@ -202,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Error loading fantasy animes: $e');
+      debugPrint('Error loading fantasy animes: $e');
       if (mounted) setState(() => _isLoadingFantasy = false);
     }
   }
@@ -216,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.8),
+            color: Colors.black.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -464,8 +464,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF0F0F1E).withOpacity(0.8),
-                  const Color(0xFF1A1A2E).withOpacity(0.8),
+                  const Color(0xFF0F0F1E).withValues(alpha: 0.8),
+                  const Color(0xFF1A1A2E).withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -509,7 +509,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.search, color: Colors.white),
@@ -569,8 +569,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF0F0F1E).withOpacity(0.3),
-                    const Color(0xFF0F0F1E).withOpacity(0.8),
+                    const Color(0xFF0F0F1E).withValues(alpha: 0.3),
+                    const Color(0xFF0F0F1E).withValues(alpha: 0.8),
                     const Color(0xFF0F0F1E),
                   ],
                   stops: const [0.0, 0.4, 0.7, 1.0],
@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFF6B6B).withOpacity(0.5),
+                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.5),
                           blurRadius: 12,
                           spreadRadius: 2,
                         ),
@@ -652,9 +652,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
+                            color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
                           ),
                           child: Row(
                             children: [
@@ -676,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -715,7 +715,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       elevation: 8,
-                      shadowColor: Colors.orange.withOpacity(0.5),
+                      shadowColor: Colors.orange.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -751,7 +751,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: gradient.colors.first.withOpacity(0.3),
+                        color: gradient.colors.first.withValues(alpha: 0.3),
                         blurRadius: 12,
                         spreadRadius: 2,
                       ),
@@ -831,7 +831,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: gradient.colors.first.withOpacity(0.3),
+                      color: gradient.colors.first.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -870,7 +870,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.7),
+                              Colors.black.withValues(alpha: 0.7),
                             ],
                           ),
                         ),
@@ -885,9 +885,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
+                            color: Colors.black.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,

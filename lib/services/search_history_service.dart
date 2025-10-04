@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchHistoryService {
@@ -35,7 +36,7 @@ class SearchHistoryService {
       final List<dynamic> decoded = jsonDecode(historyJson);
       return decoded.map((e) => e.toString()).toList();
     } catch (e) {
-      print('Error loading search history: $e');
+      debugPrint('Error loading search history: $e');
       return [];
     }
   }

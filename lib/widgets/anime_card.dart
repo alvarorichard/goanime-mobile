@@ -11,14 +11,14 @@ class AnimeCard extends StatelessWidget {
   final bool showScore;
 
   const AnimeCard({
-    Key? key,
+    super.key,
     required this.anime,
     this.onTap,
     this.width = 120,
     this.height = 180,
     this.showTitle = true,
     this.showScore = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +68,7 @@ class AnimeCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
+                          color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
@@ -121,10 +121,10 @@ class AnimeCardLarge extends StatelessWidget {
   final VoidCallback? onTap;
 
   const AnimeCardLarge({
-    Key? key,
+    super.key,
     required this.anime,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
