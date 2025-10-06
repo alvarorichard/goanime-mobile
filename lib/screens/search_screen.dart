@@ -15,42 +15,83 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderStateMixin {
+class _SearchScreenState extends State<SearchScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final JikanService _jikanService = JikanService();
   final FocusNode _searchFocusNode = FocusNode();
-  
+
   late AnimationController _animationController;
   Timer? _debounce;
-  
+
   List<String> _searchHistory = [];
   List<String> _suggestions = [];
   List<JikanAnime> _trendingAnimes = [];
   List<JikanAnime> _searchResults = [];
   List<JikanAnime> _recentSearchResults = [];
-  
+
   bool _isLoadingTrending = true;
   bool _isSearching = false;
   bool _showHistory = true;
-  
+
   // Filtros
   int? _selectedGenre;
-  
+
   List<Map<String, dynamic>> _getGenres() {
     final l10n = AppLocalizations.of(context);
     return [
       {'id': JikanGenreIds.action, 'name': l10n.action, 'icon': Icons.flash_on},
-      {'id': JikanGenreIds.adventure, 'name': l10n.adventure, 'icon': Icons.explore},
-      {'id': JikanGenreIds.comedy, 'name': l10n.comedy, 'icon': Icons.emoji_emotions},
-      {'id': JikanGenreIds.drama, 'name': l10n.drama, 'icon': Icons.theater_comedy},
-      {'id': JikanGenreIds.fantasy, 'name': l10n.fantasy, 'icon': Icons.auto_awesome},
-      {'id': JikanGenreIds.horror, 'name': l10n.horror, 'icon': Icons.dark_mode},
+      {
+        'id': JikanGenreIds.adventure,
+        'name': l10n.adventure,
+        'icon': Icons.explore,
+      },
+      {
+        'id': JikanGenreIds.comedy,
+        'name': l10n.comedy,
+        'icon': Icons.emoji_emotions,
+      },
+      {
+        'id': JikanGenreIds.drama,
+        'name': l10n.drama,
+        'icon': Icons.theater_comedy,
+      },
+      {
+        'id': JikanGenreIds.fantasy,
+        'name': l10n.fantasy,
+        'icon': Icons.auto_awesome,
+      },
+      {
+        'id': JikanGenreIds.horror,
+        'name': l10n.horror,
+        'icon': Icons.dark_mode,
+      },
       {'id': JikanGenreIds.mystery, 'name': l10n.mystery, 'icon': Icons.search},
-      {'id': JikanGenreIds.romance, 'name': l10n.romance, 'icon': Icons.favorite},
-      {'id': JikanGenreIds.sciFi, 'name': l10n.sciFi, 'icon': Icons.rocket_launch},
-      {'id': JikanGenreIds.sliceOfLife, 'name': l10n.sliceOfLife, 'icon': Icons.wb_sunny},
-      {'id': JikanGenreIds.sports, 'name': l10n.sports, 'icon': Icons.sports_soccer},
-      {'id': JikanGenreIds.supernatural, 'name': l10n.supernatural, 'icon': Icons.auto_fix_high},
+      {
+        'id': JikanGenreIds.romance,
+        'name': l10n.romance,
+        'icon': Icons.favorite,
+      },
+      {
+        'id': JikanGenreIds.sciFi,
+        'name': l10n.sciFi,
+        'icon': Icons.rocket_launch,
+      },
+      {
+        'id': JikanGenreIds.sliceOfLife,
+        'name': l10n.sliceOfLife,
+        'icon': Icons.wb_sunny,
+      },
+      {
+        'id': JikanGenreIds.sports,
+        'name': l10n.sports,
+        'icon': Icons.sports_soccer,
+      },
+      {
+        'id': JikanGenreIds.supernatural,
+        'name': l10n.supernatural,
+        'icon': Icons.auto_fix_high,
+      },
     ];
   }
 
@@ -62,11 +103,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       duration: const Duration(milliseconds: 300),
     );
     _animationController.forward();
-    
+
     _loadSearchHistory();
     _loadTrendingAnimes();
     _loadRecentSearches();
-    
+
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -81,9 +122,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     final query = _searchController.text.trim();
-    
+
     if (query.isEmpty) {
       setState(() {
         _showHistory = true;
@@ -92,12 +133,12 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       });
       return;
     }
-    
+
     setState(() => _showHistory = false);
-    
+
     // Busca sugestões no histórico
     _loadSuggestions(query);
-    
+
     // Debounce para busca na API
     _debounce = Timer(const Duration(milliseconds: 500), () {
       _performSearch(query);
@@ -133,11 +174,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Future<void> _loadRecentSearches() async {
     final history = await SearchHistoryService.getSearchHistory();
     if (history.isEmpty) return;
-    
+
     // Busca os últimos 3 animes do histórico
     final recentSearches = history.take(3).toList();
     final List<JikanAnime> results = [];
-    
+
     for (final query in recentSearches) {
       try {
         await Future.delayed(const Duration(milliseconds: 400)); // Rate limit
@@ -149,7 +190,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         debugPrint('Error loading recent search: $e');
       }
     }
-    
+
     if (mounted) {
       setState(() => _recentSearchResults = results);
     }
@@ -157,12 +198,12 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
   Future<void> _performSearch(String query) async {
     if (query.isEmpty) return;
-    
+
     setState(() => _isSearching = true);
-    
+
     try {
       List<JikanAnime> results;
-      
+
       if (_selectedGenre != null) {
         // Busca por gênero com termo
         results = await _jikanService.searchAnimes(query, limit: 20);
@@ -173,7 +214,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         // Busca normal
         results = await _jikanService.searchAnimes(query, limit: 20);
       }
-      
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -189,11 +230,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Future<void> _selectSearchQuery(String query) async {
     _searchController.text = query;
     _searchFocusNode.unfocus();
-    
+
     // Salva no histórico
     await SearchHistoryService.saveSearch(query);
     await _loadSearchHistory();
-    
+
     // Realiza a busca
     _performSearch(query);
   }
@@ -213,7 +254,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     setState(() {
       _selectedGenre = genreId;
     });
-    
+
     if (_searchController.text.isNotEmpty) {
       _performSearch(_searchController.text);
     }
@@ -222,7 +263,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Future<void> _onAnimeTap(JikanAnime anime) async {
     // Salva no histórico
     await SearchHistoryService.saveSearch(anime.title);
-    
+
     // Navega para tela de seleção de fonte
     if (!mounted) return;
     Navigator.push(
@@ -246,10 +287,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           children: [
             // Search Header
             _buildSearchHeader(),
-            
+
             // Genre Filters
             if (!_showHistory) _buildGenreFilters(),
-            
+
             // Content
             Expanded(
               child: _showHistory
@@ -285,7 +326,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 onPressed: () => Navigator.pop(context),
               ),
               const SizedBox(width: 8),
-              
+
               // Search field
               Expanded(
                 child: ClipRRect(
@@ -305,14 +346,25 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                         controller: _searchController,
                         focusNode: _searchFocusNode,
                         autofocus: true,
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                         decoration: InputDecoration(
-                          hintText: 'Buscar animes...',
-                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-                          prefixIcon: const Icon(Icons.search, color: Colors.orange),
+                          hintText: 'Search animes...',
+                          hintStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.orange,
+                          ),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear, color: Colors.white70),
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    color: Colors.white70,
+                                  ),
                                   onPressed: () {
                                     _searchController.clear();
                                     setState(() {
@@ -323,7 +375,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -332,7 +387,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               ),
             ],
           ),
-          
+
           // Suggestions
           if (_suggestions.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -349,7 +404,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       label: Text(suggestion),
                       labelStyle: const TextStyle(color: Colors.white),
                       backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                      side: BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
+                      side: BorderSide(
+                        color: Colors.orange.withValues(alpha: 0.5),
+                      ),
                       onPressed: () => _selectSearchQuery(suggestion),
                     ),
                   );
@@ -365,7 +422,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Widget _buildGenreFilters() {
     final l10n = AppLocalizations.of(context);
     final genres = _getGenres();
-    
+
     return Container(
       height: 50,
       margin: const EdgeInsets.only(bottom: 8),
@@ -381,7 +438,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 label: Text(l10n.allGenres),
                 labelStyle: TextStyle(
                   color: _selectedGenre == null ? Colors.white : Colors.white70,
-                  fontWeight: _selectedGenre == null ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: _selectedGenre == null
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                 ),
                 selected: _selectedGenre == null,
                 selectedColor: Colors.orange,
@@ -390,10 +449,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               ),
             );
           }
-          
+
           final genre = genres[index - 1];
           final isSelected = _selectedGenre == genre['id'];
-          
+
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
@@ -422,9 +481,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Buscas Recentes (com resultados)
+        // Recent Searches (with results)
         if (_recentSearchResults.isNotEmpty) ...[
-          _buildSectionHeader('Buscas Recentes', Icons.history),
+          _buildSectionHeader('Recent Searches', Icons.history),
           const SizedBox(height: 16),
           SizedBox(
             height: 200,
@@ -438,17 +497,17 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ),
           const SizedBox(height: 32),
         ],
-        
-        // Histórico de Pesquisas
+
+        // Search History
         if (_searchHistory.isNotEmpty) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSectionHeader('Histórico', Icons.schedule),
+              _buildSectionHeader('History', Icons.schedule),
               TextButton(
                 onPressed: _clearHistory,
                 child: const Text(
-                  'Limpar',
+                  'Clear',
                   style: TextStyle(color: Colors.orange),
                 ),
               ),
@@ -458,10 +517,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ..._searchHistory.take(8).map((query) {
             return ListTile(
               leading: const Icon(Icons.history, color: Colors.orange),
-              title: Text(
-                query,
-                style: const TextStyle(color: Colors.white),
-              ),
+              title: Text(query, style: const TextStyle(color: Colors.white)),
               trailing: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white54),
                 onPressed: () => _removeHistoryItem(query),
@@ -471,14 +527,12 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           }),
           const SizedBox(height: 32),
         ],
-        
-        // Em Alta
-        _buildSectionHeader('Em Alta Agora', Icons.local_fire_department),
+
+        // Trending
+        _buildSectionHeader('Trending Now', Icons.local_fire_department),
         const SizedBox(height: 16),
         if (_isLoadingTrending)
-          const Center(
-            child: CircularProgressIndicator(color: Colors.orange),
-          )
+          const Center(child: CircularProgressIndicator(color: Colors.orange))
         else
           GridView.builder(
             shrinkWrap: true,
@@ -504,23 +558,30 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         child: CircularProgressIndicator(color: Colors.orange),
       );
     }
-    
+
     if (_searchResults.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.white.withValues(alpha: 0.3)),
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 16),
             Text(
-              'Nenhum resultado encontrado',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 16),
+              'No results found',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 16,
+              ),
             ),
           ],
         ),
       );
     }
-    
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -592,7 +653,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       top: 6,
                       right: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(8),
@@ -600,7 +664,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 12),
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 12,
+                            ),
                             const SizedBox(width: 2),
                             Text(
                               anime.score!.toStringAsFixed(1),
@@ -662,7 +730,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       top: 6,
                       right: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(8),
@@ -670,7 +741,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 10),
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 10,
+                            ),
                             const SizedBox(width: 2),
                             Text(
                               anime.score!.toStringAsFixed(1),
