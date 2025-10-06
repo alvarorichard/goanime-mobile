@@ -67,14 +67,14 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
       } else {
         setState(() {
           _isSearchingAllAnime = false;
-          _allAnimeErrorMessage = 'Anime não encontrado no AllAnime';
+          _allAnimeErrorMessage = 'Anime not found on AllAnime';
         });
       }
     } catch (e) {
       debugPrint('Error searching AllAnime: $e');
       setState(() {
         _isSearchingAllAnime = false;
-        _allAnimeErrorMessage = 'Erro ao buscar no AllAnime';
+        _allAnimeErrorMessage = 'Error searching on AllAnime';
       });
     }
   }
@@ -97,14 +97,14 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
       } else {
         setState(() {
           _isSearchingAnimeFire = false;
-          _animeFireErrorMessage = 'Anime não encontrado no AnimeFire';
+          _animeFireErrorMessage = 'Anime not found on AnimeFire';
         });
       }
     } catch (e) {
       debugPrint('Error searching AnimeFire: $e');
       setState(() {
         _isSearchingAnimeFire = false;
-        _animeFireErrorMessage = 'Erro ao buscar no AnimeFire';
+        _animeFireErrorMessage = 'Error searching on AnimeFire';
       });
     }
   }
@@ -236,8 +236,8 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     subtitle: _isSearchingAllAnime
                         ? l10n.searching
                         : _allAnimeId != null
-                            ? 'Disponível • Legendado'
-                            : _allAnimeErrorMessage ?? 'Indisponível',
+                            ? 'Available • Subtitled'
+                            : _allAnimeErrorMessage ?? 'Unavailable',
                     icon: Icons.public,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
@@ -257,8 +257,8 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     subtitle: _isSearchingAnimeFire
                         ? l10n.searching
                         : _animeFireResult != null
-                            ? 'Disponível • Dublado/Legendado'
-                            : _animeFireErrorMessage ?? 'Indisponível',
+                            ? 'Available • Dubbed/Subtitled'
+                            : _animeFireErrorMessage ?? 'Unavailable',
                     icon: Icons.local_fire_department,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],

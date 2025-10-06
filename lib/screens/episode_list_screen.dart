@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../main.dart';
 import 'video_player_screen.dart';
 
-// Função para remover tags HTML da descrição
+// Function to remove HTML tags from description
 String _removeHtmlTags(String htmlText) {
   return htmlText
       .replaceAll(RegExp(r'<br>|<br/>|<br />'), '\n')
@@ -17,21 +17,36 @@ String _removeHtmlTags(String htmlText) {
       .trim();
 }
 
-// Função para extrair apenas o número do episódio
+// Function to extract only the episode number
 String _getEpisodeNumber(String episodeText, int index) {
-  // Tenta extrair número do texto (ex: "Episódio 5" -> "5")
-  final numberMatch = RegExp(r'\d+').firstMatch(episodeText);
-  if (numberMatch != null) {
-    return numberMatch.group(0)!;
+  // Try various patterns to extract episode number
+  final patterns = [
+    RegExp(r'Episódio\s*(\d+)', caseSensitive: false),
+    RegExp(r'Episode\s*(\d+)', caseSensitive: false),
+    RegExp(r'Ep\.?\s*(\d+)', caseSensitive: false),
+    RegExp(r'-\s*Episódio\s*(\d+)', caseSensitive: false),
+    RegExp(r'\b(\d+)$'),  // Number at the end
+    RegExp(r'\d+'),       // Any number
+  ];
+  
+  for (final pattern in patterns) {
+    final match = pattern.firstMatch(episodeText);
+    if (match != null) {
+      final number = match.group(1) ?? match.group(0);
+      if (number != null && number.isNotEmpty) {
+        return number;
+      }
+    }
   }
-  // Se não encontrar número, usa o índice
+  
+  // If no number found, use the index
   return '${index + 1}';
 }
 
-// Função para gerar label do episódio
+// Function to generate episode label
 String _getEpisodeLabel(String episodeText, int index) {
   final number = _getEpisodeNumber(episodeText, index);
-  return 'Episódio $number';
+  return 'Episode $number';
 }
 
 class ModernEpisodeListScreen extends StatefulWidget {
@@ -124,7 +139,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             child: _buildViewToggle(),
           ),
           
-          // Lista de Episódios
+          // Episode List
           if (_isLoading)
             SliverToBoxAdapter(
               child: _buildLoadingState(),
@@ -412,7 +427,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
-            'Episódios',
+            'Episodes',
             style: TextStyle(
               color: Colors.white,
               fontSize: 22,
@@ -527,7 +542,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             CircularProgressIndicator(color: Colors.orange),
             SizedBox(height: 16),
             Text(
-              'Carregando episódios...',
+              'Loading episodes...',
               style: TextStyle(color: Colors.white70),
             ),
           ],
@@ -545,12 +560,12 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             Icon(Icons.error_outline, size: 64, color: Colors.red.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             const Text(
-              'Erro ao carregar episódios',
+              'Error loading episodes',
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
             const SizedBox(height: 8),
             Text(
-              _errorMessage ?? 'Erro desconhecido',
+              _errorMessage ?? 'Unknown error',
               style: const TextStyle(color: Colors.white54, fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -558,7 +573,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             ElevatedButton.icon(
               onPressed: _loadEpisodes,
               icon: const Icon(Icons.refresh),
-              label: const Text('Tentar Novamente'),
+              label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
@@ -580,7 +595,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             Icon(Icons.video_library_outlined, size: 64, color: Colors.white24),
             SizedBox(height: 16),
             Text(
-              'Nenhum episódio encontrado',
+              'No episodes found',
               style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
           ],

@@ -9,6 +9,27 @@ import '../google_video_proxy.dart';
 import '../services/allanime_service.dart';
 import '../l10n/app_localizations.dart';
 
+// Function to extract only episode number from full text
+String _extractEpisodeNumber(String episodeText) {
+  // Try to extract number from text (e.g.: "Dandadan - Episódio 5" -> "5")
+  final patterns = [
+    RegExp(r'Episódio\s*(\d+)', caseSensitive: false),
+    RegExp(r'Episode\s*(\d+)', caseSensitive: false),
+    RegExp(r'Ep\.?\s*(\d+)', caseSensitive: false),
+    RegExp(r'-\s*(\d+)$'),
+    RegExp(r'\d+'),
+  ];
+  
+  for (final pattern in patterns) {
+    final match = pattern.firstMatch(episodeText);
+    if (match != null) {
+      return match.group(1) ?? match.group(0) ?? episodeText;
+    }
+  }
+  
+  return episodeText;
+}
+
 class ModernVideoPlayerScreen extends StatefulWidget {
   final Episode episode;
   final String animeTitle;
@@ -67,7 +88,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
         final allAnimeUrl = await AllAnimeService.getEpisodeURL(animeId, episodeNo);
         
         if (allAnimeUrl == null || allAnimeUrl.isEmpty) {
-          throw Exception('URL do vídeo não encontrada no AllAnime');
+          throw Exception('Video URL not found on AllAnime');
         }
         
         videoSrc = allAnimeUrl;
@@ -77,7 +98,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
         videoSrc = await AnimeService.extractVideoURL(widget.episode.url);
         
         if (videoSrc.isEmpty) {
-          throw Exception('URL do vídeo não encontrada na página');
+          throw Exception('Video URL not found on page');
         }
       }
 
@@ -97,7 +118,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       } else {
         final actualVideo = await AnimeService.extractActualVideoURL(videoSrc);
         if (actualVideo.url.isEmpty) {
-          throw Exception('URL do vídeo não pôde ser extraída da API');
+          throw Exception('Video URL could not be extracted from API');
         }
 
         resolvedVideoUrl = actualVideo.url;
@@ -144,7 +165,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
 
       if (_videoPlayerController!.value.hasError) {
         throw Exception(
-          'Erro ao inicializar: ${_videoPlayerController!.value.errorDescription}',
+          'Initialization error: ${_videoPlayerController!.value.errorDescription}',
         );
       }
 
@@ -157,7 +178,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
         showControls: true,
         aspectRatio: _calculateAspectRatio(),
         errorBuilder: (context, errorMessage) {
-          return _buildErrorWidget('Erro do player: $errorMessage');
+          return _buildErrorWidget('Player error: $errorMessage');
         },
       );
 
@@ -193,10 +214,10 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
         setState(() {
           if (isBloggerError) {
             _errorMessage =
-                'Erro de compatibilidade detectado. Tente usar o player web alternativo.';
+                'Compatibility error detected. Try using the alternative web player.';
             _showWebViewOption = _isIOS && _bloggerVideoUrl != null;
           } else {
-            _errorMessage = 'Erro no player: $error';
+            _errorMessage = 'Player error: $error';
           }
           _isLoading = false;
         });
@@ -374,7 +395,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  AppLocalizations.of(context).episode(widget.episode.number),
+                  'Episode ${_extractEpisodeNumber(widget.episode.number)}',
                   style: TextStyle(
                     color: Colors.orange.withValues(alpha: 0.9),
                     fontSize: 13,
@@ -519,7 +540,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                AppLocalizations.of(context).episode(widget.episode.number),
+                'Episode ${_extractEpisodeNumber(widget.episode.number)}',
                 style: const TextStyle(
                   color: Color(0xFFFF6B35),
                   fontSize: 16,
