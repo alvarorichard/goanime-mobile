@@ -25,10 +25,10 @@ String _getEpisodeNumber(String episodeText, int index) {
     RegExp(r'Episode\s*(\d+)', caseSensitive: false),
     RegExp(r'Ep\.?\s*(\d+)', caseSensitive: false),
     RegExp(r'-\s*Episódio\s*(\d+)', caseSensitive: false),
-    RegExp(r'\b(\d+)$'),  // Number at the end
-    RegExp(r'\d+'),       // Any number
+    RegExp(r'\b(\d+)$'), // Number at the end
+    RegExp(r'\d+'), // Any number
   ];
-  
+
   for (final pattern in patterns) {
     final match = pattern.firstMatch(episodeText);
     if (match != null) {
@@ -38,7 +38,7 @@ String _getEpisodeNumber(String episodeText, int index) {
       }
     }
   }
-  
+
   // If no number found, use the index
   return '${index + 1}';
 }
@@ -55,10 +55,11 @@ class ModernEpisodeListScreen extends StatefulWidget {
   const ModernEpisodeListScreen({super.key, required this.anime});
 
   @override
-  State<ModernEpisodeListScreen> createState() => _ModernEpisodeListScreenState();
+  State<ModernEpisodeListScreen> createState() =>
+      _ModernEpisodeListScreenState();
 }
 
-class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen> 
+class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
     with SingleTickerProviderStateMixin {
   List<Episode> _episodes = [];
   bool _isLoading = true;
@@ -128,30 +129,20 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
         slivers: [
           // App Bar com Hero Banner
           _buildSliverAppBar(),
-          
+
           // Informações do Anime
-          SliverToBoxAdapter(
-            child: _buildAnimeInfo(),
-          ),
-          
+          SliverToBoxAdapter(child: _buildAnimeInfo()),
+
           // Toggle View Button
-          SliverToBoxAdapter(
-            child: _buildViewToggle(),
-          ),
-          
+          SliverToBoxAdapter(child: _buildViewToggle()),
+
           // Episode List
           if (_isLoading)
-            SliverToBoxAdapter(
-              child: _buildLoadingState(),
-            )
+            SliverToBoxAdapter(child: _buildLoadingState())
           else if (_errorMessage != null)
-            SliverToBoxAdapter(
-              child: _buildErrorState(),
-            )
+            SliverToBoxAdapter(child: _buildErrorState())
           else if (_episodes.isEmpty)
-            SliverToBoxAdapter(
-              child: _buildEmptyState(),
-            )
+            SliverToBoxAdapter(child: _buildEmptyState())
           else
             _isGridView ? _buildGridView() : _buildListView(),
         ],
@@ -177,23 +168,19 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               CachedNetworkImage(
                 imageUrl: widget.anime.bannerUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: const Color(0xFF1A1A2E),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF1A1A2E),
-                ),
+                placeholder: (context, url) =>
+                    Container(color: const Color(0xFF1A1A2E)),
+                errorWidget: (context, url, error) =>
+                    Container(color: const Color(0xFF1A1A2E)),
               )
             else if (hasImage)
               CachedNetworkImage(
                 imageUrl: widget.anime.imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: const Color(0xFF1A1A2E),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF1A1A2E),
-                ),
+                placeholder: (context, url) =>
+                    Container(color: const Color(0xFF1A1A2E)),
+                errorWidget: (context, url, error) =>
+                    Container(color: const Color(0xFF1A1A2E)),
               )
             else
               Container(
@@ -203,7 +190,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                   ),
                 ),
               ),
-            
+
             // Gradient Overlay
             Container(
               decoration: BoxDecoration(
@@ -219,7 +206,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                 ),
               ),
             ),
-            
+
             // Title at bottom
             Positioned(
               bottom: 16,
@@ -250,11 +237,16 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.orange.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: Text(
                           widget.anime.sourceName,
@@ -268,17 +260,25 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                       if (widget.anime.aniListData?.averageScore != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 14),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 14,
+                              ),
                               const SizedBox(width: 4),
                               Text(
-                                (widget.anime.aniListData!.averageScore! / 10).toStringAsFixed(1),
+                                (widget.anime.aniListData!.averageScore! / 10)
+                                    .toStringAsFixed(1),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -324,18 +324,10 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
           // Stats Row
           Row(
             children: [
-              _buildStatItem(
-                Icons.tv,
-                '${_episodes.length} eps',
-                Colors.blue,
-              ),
+              _buildStatItem(Icons.tv, '${_episodes.length} eps', Colors.blue),
               const SizedBox(width: 16),
               if (anime.status != null)
-                _buildStatItem(
-                  Icons.info_outline,
-                  anime.status!,
-                  Colors.green,
-                ),
+                _buildStatItem(Icons.info_outline, anime.status!, Colors.green),
               if (anime.episodeCount != null) ...[
                 const SizedBox(width: 16),
                 _buildStatItem(
@@ -346,7 +338,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               ],
             ],
           ),
-          
+
           // Description
           if (hasDescription) ...[
             const SizedBox(height: 20),
@@ -361,7 +353,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          
+
           // Genres
           if (hasGenres) ...[
             const SizedBox(height: 16),
@@ -370,7 +362,10 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               runSpacing: 8,
               children: anime.genres.map((genre) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
@@ -476,11 +471,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               : null,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 20,
-        ),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -489,21 +480,18 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final episode = _episodes[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _EpisodeListCard(
-                episode: episode,
-                index: index,
-                onTap: () => _openEpisode(episode),
-                animeTitle: widget.anime.name,
-              ),
-            );
-          },
-          childCount: _episodes.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final episode = _episodes[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _EpisodeListCard(
+              episode: episode,
+              index: index,
+              onTap: () => _openEpisode(episode),
+              animeTitle: widget.anime.name,
+            ),
+          );
+        }, childCount: _episodes.length),
       ),
     );
   }
@@ -518,17 +506,14 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final episode = _episodes[index];
-            return _EpisodeGridCard(
-              episode: episode,
-              index: index,
-              onTap: () => _openEpisode(episode),
-            );
-          },
-          childCount: _episodes.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final episode = _episodes[index];
+          return _EpisodeGridCard(
+            episode: episode,
+            index: index,
+            onTap: () => _openEpisode(episode),
+          );
+        }, childCount: _episodes.length),
       ),
     );
   }
@@ -557,7 +542,11 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
       child: Center(
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red.withValues(alpha: 0.5)),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red.withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 16),
             const Text(
               'Error loading episodes',
@@ -577,7 +566,10 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
           ],
@@ -635,9 +627,7 @@ class _EpisodeListCard extends StatelessWidget {
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
@@ -672,7 +662,7 @@ class _EpisodeListCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Episode Info
             Expanded(
               child: Column(
@@ -704,7 +694,7 @@ class _EpisodeListCard extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Play Icon
             Container(
               padding: const EdgeInsets.all(12),
@@ -749,9 +739,7 @@ class _EpisodeGridCard extends StatelessWidget {
             colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Stack(
           children: [
@@ -771,7 +759,10 @@ class _EpisodeGridCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFF8E53).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),

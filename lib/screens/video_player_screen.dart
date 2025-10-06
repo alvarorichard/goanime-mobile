@@ -19,14 +19,14 @@ String _extractEpisodeNumber(String episodeText) {
     RegExp(r'-\s*(\d+)$'),
     RegExp(r'\d+'),
   ];
-  
+
   for (final pattern in patterns) {
     final match = pattern.firstMatch(episodeText);
     if (match != null) {
       return match.group(1) ?? match.group(0) ?? episodeText;
     }
   }
-  
+
   return episodeText;
 }
 
@@ -43,7 +43,8 @@ class ModernVideoPlayerScreen extends StatefulWidget {
   });
 
   @override
-  State<ModernVideoPlayerScreen> createState() => _ModernVideoPlayerScreenState();
+  State<ModernVideoPlayerScreen> createState() =>
+      _ModernVideoPlayerScreenState();
 }
 
 class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
@@ -81,22 +82,25 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
 
       if (widget.anime?.source == AnimeSource.allAnime) {
         debugPrint('[VideoPlayer] Getting AllAnime episode URL');
-        
+
         final animeId = widget.anime!.allAnimeId ?? widget.anime!.url;
         final episodeNo = widget.episode.url;
-        
-        final allAnimeUrl = await AllAnimeService.getEpisodeURL(animeId, episodeNo);
-        
+
+        final allAnimeUrl = await AllAnimeService.getEpisodeURL(
+          animeId,
+          episodeNo,
+        );
+
         if (allAnimeUrl == null || allAnimeUrl.isEmpty) {
           throw Exception('Video URL not found on AllAnime');
         }
-        
+
         videoSrc = allAnimeUrl;
         debugPrint('[VideoPlayer] AllAnime video URL: $videoSrc');
       } else {
         debugPrint('[VideoPlayer] Getting AnimeFire episode URL');
         videoSrc = await AnimeService.extractVideoURL(widget.episode.url);
-        
+
         if (videoSrc.isEmpty) {
           throw Exception('Video URL not found on page');
         }
@@ -299,7 +303,10 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.red.withValues(alpha: 0.2), Colors.red.withValues(alpha: 0.1)],
+                colors: [
+                  Colors.red.withValues(alpha: 0.2),
+                  Colors.red.withValues(alpha: 0.1),
+                ],
               ),
               shape: BoxShape.circle,
             ),
@@ -318,7 +325,10 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 24),
           if (_showWebViewOption && _bloggerVideoUrl != null) ...[
@@ -329,8 +339,13 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B35),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -343,7 +358,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -411,8 +428,8 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             child: _isLoading
                 ? _buildLoadingState()
                 : _errorMessage != null
-                    ? _buildErrorState()
-                    : _buildLoadedContent(),
+                ? _buildErrorState()
+                : _buildLoadedContent(),
           ),
         ],
       ),
@@ -479,7 +496,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       height: MediaQuery.of(context).size.height - 200,
       padding: const EdgeInsets.all(24),
       child: Center(
-        child: _buildErrorWidget(_errorMessage ?? AppLocalizations.of(context).error),
+        child: _buildErrorWidget(
+          _errorMessage ?? AppLocalizations.of(context).error,
+        ),
       ),
     );
   }
@@ -549,14 +568,27 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Tags
+              // Quality Tags
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildTag(AppLocalizations.of(context).dynamicQuality, Colors.purple),
-                  _buildTag(AppLocalizations.of(context).optimizedPlayer, Colors.blue),
-                  if (_isGoogleStream) _buildTag(AppLocalizations.of(context).googleVideo, Colors.green),
+                  _buildTag(
+                    AppLocalizations.of(context).dynamicQuality,
+                    const Color(0xFF9C27B0),
+                    Icons.high_quality_rounded,
+                  ),
+                  _buildTag(
+                    AppLocalizations.of(context).optimizedPlayer,
+                    const Color(0xFF2196F3),
+                    Icons.offline_bolt_rounded,
+                  ),
+                  if (_isGoogleStream)
+                    _buildTag(
+                      AppLocalizations.of(context).googleVideo,
+                      const Color(0xFF4CAF50),
+                      Icons.cloud_done_rounded,
+                    ),
                 ],
               ),
 
@@ -568,7 +600,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -580,7 +614,11 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.sensors, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.sensors,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -639,7 +677,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _currentVideoUrl == null ? null : _copyStreamLink,
+                      onPressed: _currentVideoUrl == null
+                          ? null
+                          : _copyStreamLink,
                       icon: const Icon(Icons.link),
                       label: Text(AppLocalizations.of(context).copyLink),
                       style: OutlinedButton.styleFrom(
@@ -681,21 +721,29 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
     );
   }
 
-  Widget _buildTag(String label, Color color) {
+  Widget _buildTag(String label, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color.withValues(alpha: 0.9),
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color.withValues(alpha: 0.9), size: 14),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.95),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

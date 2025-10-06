@@ -24,7 +24,7 @@ class SourceSelectionScreen extends StatefulWidget {
 class _SourceSelectionScreenState extends State<SourceSelectionScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  
+
   bool _isSearchingAllAnime = false;
   bool _isSearchingAnimeFire = false;
   String? _allAnimeId;
@@ -57,8 +57,10 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
     });
 
     try {
-      final searchResponse = await AllAnimeService.searchAnime(widget.animeTitle);
-      
+      final searchResponse = await AllAnimeService.searchAnime(
+        widget.animeTitle,
+      );
+
       if (searchResponse != null && searchResponse.shows.isNotEmpty) {
         setState(() {
           _allAnimeId = searchResponse.shows.first.id;
@@ -87,8 +89,10 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
 
     try {
       final results = await AnimeService.searchAnime(widget.animeTitle);
-      final animeFireResults = results.where((a) => a.source == AnimeSource.animeFire).toList();
-      
+      final animeFireResults = results
+          .where((a) => a.source == AnimeSource.animeFire)
+          .toList();
+
       if (animeFireResults.isNotEmpty) {
         setState(() {
           _animeFireResult = animeFireResults.first;
@@ -111,7 +115,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
 
   void _selectSource(AnimeSource source) {
     Anime anime;
-    
+
     if (source == AnimeSource.allAnime && _allAnimeId != null) {
       // Para AllAnime, cria um novo anime com o ID encontrado
       anime = Anime(
@@ -176,9 +180,8 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                   CachedNetworkImage(
                     imageUrl: widget.imageUrl,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: const Color(0xFF1A1A2E),
-                    ),
+                    placeholder: (context, url) =>
+                        Container(color: const Color(0xFF1A1A2E)),
                     errorWidget: (context, url, error) => Container(
                       color: const Color(0xFF1A1A2E),
                       child: const Icon(Icons.error, color: Colors.white54),
@@ -236,8 +239,8 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     subtitle: _isSearchingAllAnime
                         ? l10n.searching
                         : _allAnimeId != null
-                            ? 'Available • Subtitled'
-                            : _allAnimeErrorMessage ?? 'Unavailable',
+                        ? 'Available • Subtitled'
+                        : _allAnimeErrorMessage ?? 'Unavailable',
                     icon: Icons.public,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
@@ -257,8 +260,8 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     subtitle: _isSearchingAnimeFire
                         ? l10n.searching
                         : _animeFireResult != null
-                            ? 'Available • Dubbed/Subtitled'
-                            : _animeFireErrorMessage ?? 'Unavailable',
+                        ? 'Available • Dubbed/Subtitled'
+                        : _animeFireErrorMessage ?? 'Unavailable',
                     icon: Icons.local_fire_department,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
@@ -327,10 +330,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
           gradient: available && !isLoading
               ? gradient
               : LinearGradient(
-                  colors: [
-                    Colors.grey.shade800,
-                    Colors.grey.shade700,
-                  ],
+                  colors: [Colors.grey.shade800, Colors.grey.shade700],
                 ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: available && !isLoading
@@ -359,11 +359,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      icon,
-                      color: Colors.white,
-                      size: 32,
-                    ),
+                    child: Icon(icon, color: Colors.white, size: 32),
                   ),
                   const SizedBox(width: 16),
 
