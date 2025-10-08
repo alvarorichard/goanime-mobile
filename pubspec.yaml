@@ -63,6 +63,8 @@ dependencies:
   ionicons: ^0.2.2
   # Lucide icons
   lucide_icons: ^0.257.0
+  # Animated widgets
+  animated_item: ^0.0.2
 
 dev_dependencies:
   flutter_test:

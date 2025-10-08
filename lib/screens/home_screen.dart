@@ -492,193 +492,212 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildHeroBanner(JikanAnime anime) {
     final l10n = AppLocalizations.of(context);
-    return Container(
-      height: 500,
-      margin: const EdgeInsets.only(top: 0),
-      child: Stack(
-        children: [
-          // Imagem de fundo com parallax
-          Positioned.fill(
-            child: CachedNetworkImage(
-              imageUrl: anime.largImageUrl ?? anime.imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppColors.surface,
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: AppColors.surface,
-                child: const Icon(Icons.error, color: Colors.white54),
-              ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 1200), // Slower entrance
+      curve: Curves.easeOutQuart, // Smoother, more elegant curve
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, -60 * (1 - value)), // More dramatic slide from top
+          child: Opacity(
+            opacity: value,
+            child: Transform.scale(
+              scale: 0.90 + (0.10 * value), // More noticeable scale
+              child: child,
             ),
           ),
-
-          // Gradient overlay com múltiplas camadas (Netflix-style)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    AppColors.background.withValues(alpha: 0.3),
-                    AppColors.background.withValues(alpha: 0.85),
-                    AppColors.background,
-                  ],
-                  stops: const [0.0, 0.4, 0.75, 1.0],
-                ),
-              ),
-            ),
-          ),
-
-          // Conteúdo
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Título
-                  Text(
-                    anime.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(0, 2),
-                          blurRadius: 8,
-                          color: Colors.black,
-                        ),
-                      ],
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+        );
+      },
+      child: Container(
+        height: 500,
+        margin: const EdgeInsets.only(top: 0),
+        child: Stack(
+          children: [
+            // Imagem de fundo com parallax
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: anime.largImageUrl ?? anime.imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: AppColors.surface,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                  const SizedBox(height: 12),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.surface,
+                  child: const Icon(Icons.error, color: Colors.white54),
+                ),
+              ),
+            ),
 
-                  // Informações com Glassmorphism
-                  Row(
-                    children: [
-                      if (anime.score != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.amber.withValues(alpha: 0.5),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.star,
-                                    color: Colors.amber,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    anime.score!.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      if (anime.episodes != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.tv,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${anime.episodes} eps',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+            // Gradient overlay com múltiplas camadas (Netflix-style)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      AppColors.background.withValues(alpha: 0.3),
+                      AppColors.background.withValues(alpha: 0.85),
+                      AppColors.background,
                     ],
+                    stops: const [0.0, 0.4, 0.75, 1.0],
                   ),
-                  const SizedBox(height: 16),
-
-                  // Botão Play
-                  ElevatedButton.icon(
-                    onPressed: () => _onAnimeTap(anime),
-                    icon: const Icon(Icons.play_arrow, size: 28),
-                    label: Text(
-                      l10n.watchNow.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 8,
-                      shadowColor: AppColors.primary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            // Conteúdo
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Título
+                    Text(
+                      anime.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 2),
+                            blurRadius: 8,
+                            color: Colors.black,
+                          ),
+                        ],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Informações com Glassmorphism
+                    Row(
+                      children: [
+                        if (anime.score != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.amber.withValues(alpha: 0.5),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.star,
+                                      color: Colors.amber,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      anime.score!.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        if (anime.episodes != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.tv,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${anime.episodes} eps',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Botão Play
+                    ElevatedButton.icon(
+                      onPressed: () => _onAnimeTap(anime),
+                      icon: const Icon(Icons.play_arrow, size: 28),
+                      label: Text(
+                        l10n.watchNow.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 8,
+                        shadowColor: AppColors.primary.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -699,113 +718,138 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Cabeçalho da seção com Glassmorphism
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            gradient.colors.first.withValues(alpha: 0.3),
-                            gradient.colors.last.withValues(alpha: 0.2),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: gradient.colors.first.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: gradient.colors.first.withValues(alpha: 0.4),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Icon(icon, color: Colors.white, size: 20),
-                    ),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(
+              milliseconds: 900,
+            ), // Slower for better visibility
+            curve: Curves.easeOutQuart, // Smoother curve
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(
+                  -100 * (1 - value),
+                  0,
+                ), // More pronounced horizontal slide
+                child: Opacity(
+                  opacity: value,
+                  child: Transform.scale(
+                    scale: 0.88 + (0.12 * value), // Slightly more scale
+                    alignment: Alignment.centerLeft,
+                    child: child,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GenreAnimesScreen(
-                              title: title,
-                              icon: icon,
-                              gradient: gradient,
-                              genreId: genreId,
-                            ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              gradient.colors.first.withValues(alpha: 0.3),
+                              gradient.colors.last.withValues(alpha: 0.2),
+                            ],
                           ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.15,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: AppColors.primary.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: gradient.colors.first.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l10n.seeAll,
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                          boxShadow: [
+                            BoxShadow(
+                              color: gradient.colors.first.withValues(
+                                alpha: 0.4,
+                              ),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.arrow_forward_ios,
-                            color: AppColors.primary,
-                            size: 12,
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Icon(icon, color: Colors.white, size: 20),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GenreAnimesScreen(
+                                title: title,
+                                icon: icon,
+                                gradient: gradient,
+                                genreId: genreId,
+                              ),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.primary.withValues(
+                            alpha: 0.15,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.seeAll,
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: AppColors.primary,
+                              size: 12,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -822,11 +866,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: animes.length,
                     itemBuilder: (context, index) {
-                      return _buildModernAnimeCard(
-                        animes[index],
-                        gradient,
-                        sectionId ?? title,
-                        index,
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: Duration(
+                          milliseconds: 800 + (index * 150),
+                        ), // Slower animation
+                        curve: Curves.easeOutQuart, // Smoother curve
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(
+                              80 *
+                                  (1 -
+                                      value), // Stronger horizontal slide from right
+                              20 * (1 - value), // Subtle vertical slide
+                            ),
+                            child: Opacity(
+                              opacity: value,
+                              child: Transform.scale(
+                                scale:
+                                    0.85 +
+                                    (0.15 * value), // Gentler scale effect
+                                child: child,
+                              ),
+                            ),
+                          );
+                        },
+                        child: _buildModernAnimeCard(
+                          animes[index],
+                          gradient,
+                          sectionId ?? title,
+                          index,
+                        ),
                       );
                     },
                   ),
