@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ionicons/ionicons.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../l10n/app_localizations.dart';
@@ -274,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Seção: Destaques da Temporada
                   _buildModernSection(
                     title: l10n.seasonHighlights,
-                    icon: Icons.movie_filter,
+                    icon: Ionicons.trending_up_outline,
                     gradient: LinearGradient(
                       colors: [AppColors.primary, AppColors.secondary],
                     ),
@@ -287,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Seção: Top Animes
                   _buildModernSection(
                     title: l10n.topAnime,
-                    icon: Icons.star,
+                    icon: LucideIcons.trophy,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFFD93D), Color(0xFFFFA500)],
                     ),
@@ -300,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Seção: Ação
                   _buildModernSection(
                     title: l10n.action,
-                    icon: Icons.flash_on,
+                    icon: LucideIcons.swords,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF6C5CE7), Color(0xFFA29BFE)],
                     ),
@@ -313,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Seção: Romance
                   _buildModernSection(
                     title: l10n.romance,
-                    icon: Icons.favorite,
+                    icon: LucideIcons.heart,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B9D), Color(0xFFC44569)],
                     ),
@@ -326,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Seção: Comédia
                   _buildModernSection(
                     title: l10n.comedy,
-                    icon: Icons.emoji_emotions,
+                    icon: LucideIcons.laugh,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF00D2FF), Color(0xFF3A7BD5)],
                     ),
@@ -339,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Seção: Fantasia
                   _buildModernSection(
                     title: l10n.fantasy,
-                    icon: Icons.auto_awesome,
+                    icon: LucideIcons.wand2,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                     ),
@@ -764,7 +766,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       },
                       style: TextButton.styleFrom(
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.15,
+                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,

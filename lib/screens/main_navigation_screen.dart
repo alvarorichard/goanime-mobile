@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bottom_navy_bar/bottom_navy_bar.dart';
+import 'package:ionicons/ionicons.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
@@ -49,28 +50,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           },
           items: [
             BottomNavyBarItem(
-              icon: const Icon(Icons.home),
+              icon: const Icon(Ionicons.home_outline),
               title: const Text('Home'),
               activeColor: AppColors.primary,
               inactiveColor: Colors.grey,
               textAlign: TextAlign.center,
             ),
             BottomNavyBarItem(
-              icon: const Icon(Icons.search),
+              icon: const Icon(Ionicons.search_outline),
               title: const Text('Pesquisa'),
               activeColor: AppColors.primary,
               inactiveColor: Colors.grey,
               textAlign: TextAlign.center,
             ),
             BottomNavyBarItem(
-              icon: const Icon(Icons.bookmark),
+              icon: const Icon(Ionicons.bookmark_outline),
               title: const Text('Watchlist'),
               activeColor: AppColors.primary,
               inactiveColor: Colors.grey,
               textAlign: TextAlign.center,
             ),
             BottomNavyBarItem(
-              icon: const Icon(Icons.settings),
+              icon: const Icon(Ionicons.settings_outline),
               title: const Text('Settings'),
               activeColor: AppColors.primary,
               inactiveColor: Colors.grey,

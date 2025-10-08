@@ -59,6 +59,10 @@ dependencies:
   intl: any
   # Bottom navigation bar
   bottom_navy_bar: ^6.0.0
+  # Ionicons icons
+  ionicons: ^0.2.2
+  # Lucide icons
+  lucide_icons: ^0.257.0
 
 dev_dependencies:
   flutter_test:

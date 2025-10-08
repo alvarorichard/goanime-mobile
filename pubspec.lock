@@ -221,6 +221,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.2"
+  ionicons:
+    dependency: "direct main"
+    description:
+      name: ionicons
+      sha256: "5496bc65a16115ecf05b15b78f494ee4a8869504357668f0a11d689e970523cf"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -253,6 +261,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
+  lucide_icons:
+    dependency: "direct main"
+    description:
+      name: lucide_icons
+      sha256: ad24d0fd65707e48add30bebada7d90bff2a1bba0a72d6e9b19d44246b0e83c4
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.257.0"
   matcher:
     dependency: transitive
     description:
