@@ -4,6 +4,7 @@ import '../main.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../services/allanime_service.dart';
+import '../widgets/watchlist_button.dart';
 import 'episode_list_screen.dart';
 
 class SourceSelectionScreen extends StatefulWidget {
@@ -217,15 +218,29 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Título do anime
-                  Text(
-                    widget.animeTitle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                  // Título do anime com botão de watchlist
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.animeTitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      WatchlistButton(
+                        animeId: widget.myAnimeListUrl,
+                        title: widget.animeTitle,
+                        coverImage: widget.imageUrl,
+                        myAnimeListUrl: widget.myAnimeListUrl,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
