@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 import 'source_selection_screen.dart';
 
 class GenreAnimesScreen extends StatefulWidget {
@@ -26,7 +27,7 @@ class GenreAnimesScreen extends StatefulWidget {
 class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
   final JikanService _jikanService = JikanService();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<JikanAnime> _animes = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -47,7 +48,8 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoadingMore && _hasMorePages) {
         _loadMoreAnimes();
       }
@@ -58,14 +60,17 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
     setState(() => _isLoading = true);
     try {
       List<JikanAnime> animes;
-      
+
       if (widget.genreId != null) {
-        animes = await _jikanService.getAnimesByGenre(widget.genreId!, limit: 25);
+        animes = await _jikanService.getAnimesByGenre(
+          widget.genreId!,
+          limit: 25,
+        );
       } else {
         // Para "Top Anime" ou "Season Highlights"
         animes = await _jikanService.getTopAnimes(limit: 25);
       }
-      
+
       if (mounted) {
         setState(() {
           _animes = animes;
@@ -81,15 +86,15 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
 
   Future<void> _loadMoreAnimes() async {
     if (_isLoadingMore) return;
-    
+
     setState(() => _isLoadingMore = true);
     _currentPage++;
-    
+
     try {
       await Future.delayed(const Duration(milliseconds: 600)); // Rate limiting
-      
+
       List<JikanAnime> newAnimes;
-      
+
       if (widget.genreId != null) {
         newAnimes = await _jikanService.getAnimesByGenre(
           widget.genreId!,
@@ -102,7 +107,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
           limit: 25,
         );
       }
-      
+
       if (mounted) {
         setState(() {
           _animes.addAll(newAnimes);
@@ -137,9 +142,9 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
@@ -148,7 +153,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
             expandedHeight: 200,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF0F0F1E),
+            backgroundColor: AppColors.background,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 widget.title,
@@ -164,9 +169,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                 ),
               ),
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: widget.gradient,
-                ),
+                decoration: BoxDecoration(gradient: widget.gradient),
                 child: Stack(
                   children: [
                     Center(
@@ -184,8 +187,8 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              const Color(0xFF0F0F1E).withValues(alpha: 0.8),
-                              const Color(0xFF0F0F1E),
+                              AppColors.background.withValues(alpha: 0.85),
+                              AppColors.background,
                             ],
                           ),
                         ),
@@ -196,7 +199,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
               ),
             ),
           ),
-          
+
           // Conteúdo
           if (_isLoading)
             SliverFillRemaining(
@@ -204,7 +207,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircularProgressIndicator(color: Colors.orange),
+                    const CircularProgressIndicator(color: Color(0xFF00BCD4)),
                     const SizedBox(height: 16),
                     Text(
                       l10n.loading,
@@ -247,31 +250,26 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                 ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index >= _animes.length) return null;
-                    return _buildAnimeCard(_animes[index]);
-                  },
-                  childCount: _animes.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index >= _animes.length) return null;
+                  return _buildAnimeCard(_animes[index]);
+                }, childCount: _animes.length),
               ),
             ),
-          
+
           // Loading indicator para paginação
           if (_isLoadingMore)
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Center(
-                  child: CircularProgressIndicator(color: Colors.orange),
+                  child: CircularProgressIndicator(color: Color(0xFF00BCD4)),
                 ),
               ),
             ),
-          
+
           // Espaçamento final
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 16),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
         ],
       ),
     );
@@ -301,17 +299,17 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                 imageUrl: anime.imageUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surface,
                   child: const Center(
-                    child: CircularProgressIndicator(color: Colors.orange),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 ),
                 errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surface,
                   child: const Icon(Icons.error, color: Colors.white54),
                 ),
               ),
-              
+
               // Gradient overlay
               Positioned.fill(
                 child: Container(
@@ -327,14 +325,17 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                   ),
                 ),
               ),
-              
+
               // Score badge
               if (anime.score != null && anime.score! > 0)
                 Positioned(
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(12),
@@ -356,7 +357,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                     ),
                   ),
                 ),
-              
+
               // Título
               Positioned(
                 left: 12,

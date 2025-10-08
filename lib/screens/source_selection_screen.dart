@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../main.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 import '../services/allanime_service.dart';
 import 'episode_list_screen.dart';
 
@@ -151,7 +152,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           // AppBar com imagem do anime
@@ -159,7 +160,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
             expandedHeight: 300,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF0F0F1E),
+            backgroundColor: AppColors.background,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 l10n.selectVersion,
@@ -181,9 +182,9 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     imageUrl: widget.imageUrl,
                     fit: BoxFit.cover,
                     placeholder: (context, url) =>
-                        Container(color: const Color(0xFF1A1A2E)),
+                        Container(color: AppColors.surface),
                     errorWidget: (context, url, error) => Container(
-                      color: const Color(0xFF1A1A2E),
+                      color: AppColors.surface,
                       child: const Icon(Icons.error, color: Colors.white54),
                     ),
                   ),
@@ -194,8 +195,8 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          const Color(0xFF0F0F1E).withValues(alpha: 0.7),
-                          const Color(0xFF0F0F1E),
+                          AppColors.background.withValues(alpha: 0.8),
+                          AppColors.background,
                         ],
                       ),
                     ),

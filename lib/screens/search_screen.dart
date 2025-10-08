@@ -6,6 +6,7 @@ import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../services/search_history_service.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 import 'source_selection_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -281,7 +282,7 @@ class _SearchScreenState extends State<SearchScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -308,11 +309,11 @@ class _SearchScreenState extends State<SearchScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF0F0F1E),
-            const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+            AppColors.background,
+            AppColors.backgroundLight,
           ],
         ),
       ),
@@ -642,9 +643,9 @@ class _SearchScreenState extends State<SearchScreen>
                     height: 160,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: const Color(0xFF1A1A2E),
+                      color: AppColors.surface,
                       child: const Center(
-                        child: CircularProgressIndicator(color: Colors.orange),
+                        child: CircularProgressIndicator(color: AppColors.primary),
                       ),
                     ),
                   ),
@@ -719,9 +720,9 @@ class _SearchScreenState extends State<SearchScreen>
                     height: double.infinity,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: const Color(0xFF1A1A2E),
+                      color: AppColors.surface,
                       child: const Center(
-                        child: CircularProgressIndicator(color: Colors.orange),
+                        child: CircularProgressIndicator(color: AppColors.primary),
                       ),
                     ),
                   ),

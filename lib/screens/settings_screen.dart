@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/locale_service.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -12,7 +13,7 @@ class SettingsScreen extends StatelessWidget {
     final localeService = Provider.of<LocaleService>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -104,7 +105,7 @@ class SettingsScreen extends StatelessWidget {
             context,
             title: l10n.about,
             icon: Icons.info_outline,
-            iconColor: Colors.orange,
+            iconColor: AppColors.primary,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -112,8 +113,8 @@ class SettingsScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.secondary],
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -167,16 +168,9 @@ class SettingsScreen extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A1A2E).withValues(alpha: 0.8),
-            const Color(0xFF16213E).withValues(alpha: 0.6),
-          ],
-        ),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,10 +219,7 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
-            Text(
-              flag,
-              style: const TextStyle(fontSize: 32),
-            ),
+            Text(flag, style: const TextStyle(fontSize: 32)),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -260,11 +251,7 @@ class SettingsScreen extends StatelessWidget {
                   color: Colors.green.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.green,
-                  size: 20,
-                ),
+                child: const Icon(Icons.check, color: Colors.green, size: 20),
               ),
           ],
         ),

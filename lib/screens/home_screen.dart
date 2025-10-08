@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/jikan_models.dart';
 import '../services/jikan_service.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'genre_animes_screen.dart';
@@ -19,13 +20,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final JikanService _jikanService = JikanService();
   final ScrollController _scrollController = ScrollController();
-  
+
   late AnimationController _fabAnimationController;
   late AnimationController _headerAnimationController;
-  
+
   bool _showFab = false;
   double _headerOpacity = 1.0;
-  
+
   // Estados de carregamento
   bool _isLoadingSeason = true;
   bool _isLoadingTop = true;
@@ -33,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoadingRomance = true;
   bool _isLoadingComedy = true;
   bool _isLoadingFantasy = true;
-  
+
   // Listas de animes
   List<JikanAnime> _seasonAnimes = [];
   List<JikanAnime> _topAnimes = [];
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<JikanAnime> _romanceAnimes = [];
   List<JikanAnime> _comedyAnimes = [];
   List<JikanAnime> _fantasyAnimes = [];
-  
+
   // Índice do banner atual
   int _currentBannerIndex = 0;
 
@@ -56,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
+
     _scrollController.addListener(_onScroll);
     _loadAllData();
     _startBannerRotation();
@@ -72,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _onScroll() {
     final offset = _scrollController.offset;
-    
+
     // Mostrar FAB quando rolar para baixo
     if (offset > 300 && !_showFab) {
       setState(() => _showFab = true);
@@ -81,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       setState(() => _showFab = false);
       _fabAnimationController.reverse();
     }
-    
+
     // Fade out do header ao rolar
     setState(() {
       _headerOpacity = (1 - (offset / 400)).clamp(0.0, 1.0);
@@ -92,7 +93,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted && _seasonAnimes.isNotEmpty) {
         setState(() {
-          _currentBannerIndex = (_currentBannerIndex + 1) % _seasonAnimes.length.clamp(0, 5);
+          _currentBannerIndex =
+              (_currentBannerIndex + 1) % _seasonAnimes.length.clamp(0, 5);
         });
         _startBannerRotation();
       }
@@ -149,7 +151,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadActionAnimes() async {
     setState(() => _isLoadingAction = true);
     try {
-      final animes = await _jikanService.getAnimesByGenre(JikanGenreIds.action, limit: 15);
+      final animes = await _jikanService.getAnimesByGenre(
+        JikanGenreIds.action,
+        limit: 15,
+      );
       if (mounted) {
         setState(() {
           _actionAnimes = animes;
@@ -165,8 +170,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadRomanceAnimes() async {
     setState(() => _isLoadingRomance = true);
     try {
-      debugPrint('Loading Romance animes with genre ID: ${JikanGenreIds.romance}');
-      final animes = await _jikanService.getAnimesByGenre(JikanGenreIds.romance, limit: 15);
+      debugPrint(
+        'Loading Romance animes with genre ID: ${JikanGenreIds.romance}',
+      );
+      final animes = await _jikanService.getAnimesByGenre(
+        JikanGenreIds.romance,
+        limit: 15,
+      );
       debugPrint('Loaded ${animes.length} romance animes');
       if (mounted) {
         setState(() {
@@ -183,7 +193,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadComedyAnimes() async {
     setState(() => _isLoadingComedy = true);
     try {
-      final animes = await _jikanService.getAnimesByGenre(JikanGenreIds.comedy, limit: 15);
+      final animes = await _jikanService.getAnimesByGenre(
+        JikanGenreIds.comedy,
+        limit: 15,
+      );
       if (mounted) {
         setState(() {
           _comedyAnimes = animes;
@@ -199,8 +212,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadFantasyAnimes() async {
     setState(() => _isLoadingFantasy = true);
     try {
-      debugPrint('Loading Fantasy animes with genre ID: ${JikanGenreIds.fantasy}');
-      final animes = await _jikanService.getAnimesByGenre(JikanGenreIds.fantasy, limit: 15);
+      debugPrint(
+        'Loading Fantasy animes with genre ID: ${JikanGenreIds.fantasy}',
+      );
+      final animes = await _jikanService.getAnimesByGenre(
+        JikanGenreIds.fantasy,
+        limit: 15,
+      );
       debugPrint('Loaded ${animes.length} fantasy animes');
       if (mounted) {
         setState(() {
@@ -231,13 +249,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
       appBar: _buildAppBar(),
       body: RefreshIndicator(
         onRefresh: _loadAllData,
-        color: Colors.orange,
-        backgroundColor: const Color(0xFF1A1A2E),
+        color: AppColors.primary,
+        backgroundColor: AppColors.surface,
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
@@ -246,26 +264,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               SliverToBoxAdapter(
                 child: _buildHeroBanner(_seasonAnimes[_currentBannerIndex]),
               ),
-            
+
             // Conteúdo principal
             SliverToBoxAdapter(
               child: Column(
                 children: [
                   const SizedBox(height: 32),
-                  
-                                    // Seção: Destaques da Temporada
+
+                  // Seção: Destaques da Temporada
                   _buildModernSection(
                     title: l10n.seasonHighlights,
                     icon: Icons.movie_filter,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.secondary],
                     ),
                     animes: _seasonAnimes,
                     isLoading: _isLoadingSeason,
                     sectionId: 'season',
                     genreId: null,
                   ),
-                  
+
                   // Seção: Top Animes
                   _buildModernSection(
                     title: l10n.topAnime,
@@ -278,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     sectionId: 'top',
                     genreId: null,
                   ),
-                  
+
                   // Seção: Ação
                   _buildModernSection(
                     title: l10n.action,
@@ -291,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     sectionId: 'action',
                     genreId: JikanGenreIds.action,
                   ),
-                  
+
                   // Seção: Romance
                   _buildModernSection(
                     title: l10n.romance,
@@ -304,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     sectionId: 'romance',
                     genreId: JikanGenreIds.romance,
                   ),
-                  
+
                   // Seção: Comédia
                   _buildModernSection(
                     title: l10n.comedy,
@@ -317,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     sectionId: 'comedy',
                     genreId: JikanGenreIds.comedy,
                   ),
-                  
+
                   // Seção: Fantasia
                   _buildModernSection(
                     title: l10n.fantasy,
@@ -330,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     sectionId: 'fantasy',
                     genreId: JikanGenreIds.fantasy,
                   ),
-                  
+
                   const SizedBox(height: 48),
                 ],
               ),
@@ -339,21 +357,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
       floatingActionButton: _showFab
-        ? ScaleTransition(
-            scale: _fabAnimationController,
-            child: FloatingActionButton(
-              onPressed: () {
-                _scrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeInOut,
-                );
-              },
-              backgroundColor: Colors.orange,
-              child: const Icon(Icons.arrow_upward, color: Colors.white),
-            ),
-          )
-        : null,
+          ? ScaleTransition(
+              scale: _fabAnimationController,
+              child: FloatingActionButton(
+                onPressed: () {
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                backgroundColor: AppColors.primary,
+                child: const Icon(Icons.arrow_upward, color: Colors.white),
+              ),
+            )
+          : null,
     );
   }
 
@@ -367,11 +385,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  const Color(0xFF0F0F1E).withValues(alpha: 0.8),
-                  const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+                  AppColors.background.withValues(alpha: 0.95),
+                  AppColors.background.withValues(alpha: 0.7),
                 ],
               ),
             ),
@@ -386,17 +404,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.secondary],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.play_circle_filled, color: Colors.white, size: 24),
+              child: const Icon(
+                Icons.play_circle_filled,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+              shaderCallback: (bounds) => LinearGradient(
+                colors: [AppColors.primary, AppColors.secondary],
               ).createShader(bounds),
               child: const Text(
                 'GoAnime',
@@ -424,15 +446,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Navigator.push(
               context,
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const SearchScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeInOut;
-                  var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
-                  return SlideTransition(position: offsetAnimation, child: child);
-                },
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const SearchScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
+                      var tween = Tween(
+                        begin: begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
+                      return SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      );
+                    },
               ),
             );
           },
@@ -471,19 +501,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               imageUrl: anime.largImageUrl ?? anime.imageUrl,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.surface,
                 child: const Center(
-                  child: CircularProgressIndicator(color: Colors.orange),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
               errorWidget: (context, url, error) => Container(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.surface,
                 child: const Icon(Icons.error, color: Colors.white54),
               ),
             ),
           ),
-          
-          // Gradient overlay com múltiplas camadas
+
+          // Gradient overlay com múltiplas camadas (Netflix-style)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -492,16 +522,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF0F0F1E).withValues(alpha: 0.3),
-                    const Color(0xFF0F0F1E).withValues(alpha: 0.8),
-                    const Color(0xFF0F0F1E),
+                    AppColors.background.withValues(alpha: 0.3),
+                    AppColors.background.withValues(alpha: 0.85),
+                    AppColors.background,
                   ],
-                  stops: const [0.0, 0.4, 0.7, 1.0],
+                  stops: const [0.0, 0.4, 0.75, 1.0],
                 ),
               ),
             ),
           ),
-          
+
           // Conteúdo
           Positioned(
             bottom: 0,
@@ -515,10 +545,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   // Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.secondary],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
@@ -532,7 +565,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.whatshot, color: Colors.white, size: 16),
+                        const Icon(
+                          Icons.whatshot,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           l10n.trending.toUpperCase(),
@@ -547,7 +584,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Título
                   Text(
                     anime.title,
@@ -567,21 +604,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Informações
                   Row(
                     children: [
                       if (anime.score != null) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.5),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 16),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 16,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 anime.score!.toStringAsFixed(1),
@@ -597,14 +643,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ],
                       if (anime.episodes != null) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.tv, color: Colors.white70, size: 16),
+                              const Icon(
+                                Icons.tv,
+                                color: Colors.white70,
+                                size: 16,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${anime.episodes} eps',
@@ -617,7 +670,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Botão Play
                   ElevatedButton.icon(
                     onPressed: () => _onAnimeTap(anime),
@@ -631,14 +684,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                       elevation: 8,
-                      shadowColor: Colors.orange.withValues(alpha: 0.5),
+                      shadowColor: AppColors.primary.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -667,7 +723,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           // Cabeçalho da seção
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Container(
@@ -691,11 +747,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
                     Navigator.push(
@@ -710,18 +769,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     );
                   },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         l10n.seeAll,
                         style: const TextStyle(
-                          color: Colors.orange,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_ios, color: Colors.orange, size: 14),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: AppColors.primary,
+                        size: 12,
+                      ),
                     ],
                   ),
                 ),
@@ -729,29 +801,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Lista de animes
           SizedBox(
             height: 280,
             child: isLoading
                 ? _buildLoadingCards()
                 : animes.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: animes.length,
-                        itemBuilder: (context, index) {
-                          return _buildModernAnimeCard(animes[index], gradient, sectionId ?? title, index);
-                        },
-                      ),
+                ? _buildEmptyState()
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: animes.length,
+                    itemBuilder: (context, index) {
+                      return _buildModernAnimeCard(
+                        animes[index],
+                        gradient,
+                        sectionId ?? title,
+                        index,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildModernAnimeCard(JikanAnime anime, Gradient gradient, String sectionId, int index) {
+  Widget _buildModernAnimeCard(
+    JikanAnime anime,
+    Gradient gradient,
+    String sectionId,
+    int index,
+  ) {
     return GestureDetector(
       onTap: () => _onAnimeTap(anime),
       child: Container(
@@ -786,18 +868,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         height: 220,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color: const Color(0xFF1A1A2E),
+                          color: AppColors.surface,
                           child: const Center(
-                            child: CircularProgressIndicator(color: Colors.orange),
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          color: const Color(0xFF1A1A2E),
+                          color: AppColors.surface,
                           child: const Icon(Icons.error, color: Colors.white54),
                         ),
                       ),
                     ),
-                    
+
                     // Gradient overlay
                     Positioned.fill(
                       child: Container(
@@ -814,23 +898,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    
+
                     // Score badge
                     if (anime.score != null)
                       Positioned(
                         top: 8,
                         right: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.5),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 12),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 12,
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 anime.score!.toStringAsFixed(1),
@@ -849,7 +942,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 8),
-            
+
             // Título
             Text(
               anime.title,
@@ -883,11 +976,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 height: 220,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Center(
-                  child: CircularProgressIndicator(color: Colors.orange),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
               const SizedBox(height: 8),
@@ -895,7 +988,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 width: 120,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),

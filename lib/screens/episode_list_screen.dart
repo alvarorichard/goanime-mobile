@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../main.dart';
 import 'video_player_screen.dart';
+import '../theme/app_colors.dart';
 
 // Function to remove HTML tags from description
 String _removeHtmlTags(String htmlText) {
@@ -124,7 +125,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           // App Bar com Hero Banner
@@ -199,8 +200,8 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF0F0F1E).withValues(alpha: 0.7),
-                    const Color(0xFF0F0F1E),
+                    AppColors.background.withValues(alpha: 0.7),
+                    AppColors.background,
                   ],
                   stops: const [0.0, 0.7, 1.0],
                 ),
@@ -242,16 +243,16 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: Colors.orange.withValues(alpha: 0.5),
+                            color: AppColors.primary.withValues(alpha: 0.5),
                           ),
                         ),
                         child: Text(
                           widget.anime.sourceName,
                           style: const TextStyle(
-                            color: Colors.orange,
+                            color: AppColors.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -367,9 +368,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
-                    ),
+                    gradient: AppColors.getPrimaryGradient(),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -524,7 +523,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
       child: const Center(
         child: Column(
           children: [
-            CircularProgressIndicator(color: Colors.orange),
+            CircularProgressIndicator(color: AppColors.primary),
             SizedBox(height: 16),
             Text(
               'Loading episodes...',
@@ -564,7 +563,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -636,13 +635,11 @@ class _EpisodeListCard extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
-                ),
+                gradient: AppColors.getPrimaryGradient(),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+                    color: AppColors.primaryShadow,
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
@@ -684,7 +681,7 @@ class _EpisodeListCard extends StatelessWidget {
                   Text(
                     _getEpisodeLabel(episode.number, index),
                     style: const TextStyle(
-                      color: Color(0xFFFF8E53),
+                      color: AppColors.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -699,12 +696,12 @@ class _EpisodeListCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.play_arrow,
-                color: Colors.orange,
+                color: AppColors.primary,
                 size: 24,
               ),
             ),
@@ -764,13 +761,13 @@ class _EpisodeGridCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF8E53).withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(
+                    child: const Text(
                       'EP',
-                      style: const TextStyle(
-                        color: Color(0xFFFF8E53),
+                      style: TextStyle(
+                        color: AppColors.primary,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -785,12 +782,12 @@ class _EpisodeGridCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.play_arrow,
-                  color: Colors.orange,
+                  color: AppColors.primary,
                   size: 16,
                 ),
               ),

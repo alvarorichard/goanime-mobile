@@ -8,6 +8,7 @@ import '../main.dart';
 import '../google_video_proxy.dart';
 import '../services/allanime_service.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 
 // Function to extract only episode number from full text
 String _extractEpisodeNumber(String episodeText) {
@@ -278,7 +279,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context).linkCopied),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -377,14 +378,14 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           // App Bar moderno
           SliverAppBar(
             expandedHeight: 80,
             pinned: true,
-            backgroundColor: const Color(0xFF0F0F1E),
+            backgroundColor: AppColors.background,
             elevation: 0,
             leading: IconButton(
               icon: Container(
@@ -414,7 +415,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                 Text(
                   'Episode ${_extractEpisodeNumber(widget.episode.number)}',
                   style: TextStyle(
-                    color: Colors.orange.withValues(alpha: 0.9),
+                    color: AppColors.primary.withValues(alpha: 0.9),
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -447,13 +448,11 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
-                ),
+                gradient: AppColors.getPrimaryGradient(),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                    color: AppColors.primaryShadow,
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -539,8 +538,8 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF1A1A2E).withValues(alpha: 0.8),
-                const Color(0xFF16213E).withValues(alpha: 0.6),
+                AppColors.surface.withValues(alpha: 0.8),
+                AppColors.surfaceLight.withValues(alpha: 0.6),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
@@ -561,7 +560,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
               Text(
                 'Episode ${_extractEpisodeNumber(widget.episode.number)}',
                 style: const TextStyle(
-                  color: Color(0xFFFF6B35),
+                  color: AppColors.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -601,7 +600,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                     color: Colors.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -609,9 +608,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
-                          ),
+                          gradient: AppColors.getPrimaryGradient(),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -647,7 +644,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                       ),
                       IconButton(
                         onPressed: _copyStreamLink,
-                        icon: const Icon(Icons.copy, color: Colors.orange),
+                        icon: const Icon(Icons.copy, color: AppColors.primary),
                         tooltip: AppLocalizations.of(context).copyLink,
                       ),
                     ],
@@ -665,7 +662,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                       icon: const Icon(Icons.refresh),
                       label: Text(AppLocalizations.of(context).syncStream),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF6B35),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -683,8 +680,8 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                       icon: const Icon(Icons.link),
                       label: Text(AppLocalizations.of(context).copyLink),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.orange,
-                        side: const BorderSide(color: Colors.orange),
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
