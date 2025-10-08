@@ -23,7 +23,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     // Lista de telas para o IndexedStack
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       const HomeScreen(),
       SearchScreen(onBackPressed: _navigateToHome),
       const WatchlistScreen(),
@@ -39,7 +39,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: IndexedStack(index: _currentIndex, children: _screens),
+        body: IndexedStack(index: _currentIndex, children: screens),
         bottomNavigationBar: BottomNavyBar(
           backgroundColor: AppColors.surface,
           selectedIndex: _currentIndex,
