@@ -43,6 +43,8 @@ class _WatchlistButtonState extends State<WatchlistButton> {
     }
   }
 
+  // --- IGNORE --- 
+
   Future<void> _toggleWatchlist() async {
     final messenger = ScaffoldMessenger.of(context);
 
