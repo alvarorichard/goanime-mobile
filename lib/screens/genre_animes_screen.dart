@@ -175,7 +175,7 @@ class _GenreAnimesScreenState extends State<GenreAnimesScreen> {
                     Center(
                       child: Icon(
                         widget.icon,
-                        size: 80,
+                        size: 90,
                         color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),

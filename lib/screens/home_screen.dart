@@ -1000,10 +1000,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    final l10n = AppLocalizations.of(context);
+    return Center(
       child: Text(
-        'Nenhum anime encontrado',
-        style: TextStyle(color: Colors.white54),
+        l10n.noAnimeFound,
+        style: const TextStyle(color: Colors.white54),
       ),
     );
   }

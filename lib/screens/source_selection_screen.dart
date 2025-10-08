@@ -68,9 +68,11 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
           _isSearchingAllAnime = false;
         });
       } else {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _isSearchingAllAnime = false;
-          _allAnimeErrorMessage = 'Anime not found on AllAnime';
+          _allAnimeErrorMessage = l10n.animeNotFoundOnAllAnime;
         });
       }
     } catch (e) {
@@ -100,9 +102,11 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
           _isSearchingAnimeFire = false;
         });
       } else {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _isSearchingAnimeFire = false;
-          _animeFireErrorMessage = 'Anime not found on AnimeFire';
+          _animeFireErrorMessage = l10n.animeNotFoundOnAnimeFire;
         });
       }
     } catch (e) {

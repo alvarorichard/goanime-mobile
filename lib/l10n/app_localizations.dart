@@ -114,6 +114,15 @@ class AppLocalizations {
   String get noEpisodesFound => locale.languageCode == 'pt'
       ? 'Nenhum episódio encontrado'
       : 'No episodes found';
+  String get noAnimeFound => locale.languageCode == 'pt'
+      ? 'Nenhum anime encontrado'
+      : 'No anime found';
+  String get animeNotFoundOnAllAnime => locale.languageCode == 'pt'
+      ? 'Anime não encontrado no AllAnime'
+      : 'Anime not found on AllAnime';
+  String get animeNotFoundOnAnimeFire => locale.languageCode == 'pt'
+      ? 'Anime não encontrado no AnimeFire'
+      : 'Anime not found on AnimeFire';
 
   // Video Player Screen
   String get nowPlaying =>

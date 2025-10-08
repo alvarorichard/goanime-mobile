@@ -558,6 +558,7 @@ class _SearchScreenState extends State<SearchScreen>
     }
 
     if (_searchResults.isEmpty) {
+      final l10n = AppLocalizations.of(context);
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -569,7 +570,7 @@ class _SearchScreenState extends State<SearchScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No results found',
+              l10n.noResultsFound,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 16,
