@@ -13,7 +13,8 @@ class WatchlistScreen extends StatefulWidget {
   State<WatchlistScreen> createState() => _WatchlistScreenState();
 }
 
-class _WatchlistScreenState extends State<WatchlistScreen> with AutomaticKeepAliveClientMixin {
+class _WatchlistScreenState extends State<WatchlistScreen>
+    with AutomaticKeepAliveClientMixin {
   final WatchlistService _watchlistService = WatchlistService();
   final WatchlistNotifier _watchlistNotifier = WatchlistNotifier();
   List<WatchlistAnime> _watchlist = [];
@@ -26,7 +27,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with AutomaticKeepAli
   void initState() {
     super.initState();
     _loadWatchlist();
-    
+
     // Escuta mudanças na watchlist
     _watchlistNotifier.addListener(_onWatchlistChanged);
   }
