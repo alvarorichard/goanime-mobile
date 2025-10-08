@@ -11,7 +11,7 @@ import 'source_selection_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final VoidCallback? onBackPressed;
-  
+
   const SearchScreen({super.key, this.onBackPressed});
 
   @override
@@ -284,7 +284,7 @@ class _SearchScreenState extends State<SearchScreen>
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.canPop(context);
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(

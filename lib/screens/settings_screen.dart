@@ -6,7 +6,7 @@ import '../theme/app_colors.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VoidCallback? onBackPressed;
-  
+
   const SettingsScreen({super.key, this.onBackPressed});
 
   @override
