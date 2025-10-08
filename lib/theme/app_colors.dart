@@ -40,7 +40,9 @@ class AppColors {
 
   // Text Colors - High contrast on black
   static const Color textPrimary = Color(0xFFFFFFFF); // Pure white
-  static const Color textSecondary = Color(0xFFB3B3B3); // Light gray (Netflix style)
+  static const Color textSecondary = Color(
+    0xFFB3B3B3,
+  ); // Light gray (Netflix style)
   static const Color textTertiary = Color(0xFF808080); // Medium gray
   static const Color textDisabled = Color(0xFF4D4D4D); // Dark gray
 

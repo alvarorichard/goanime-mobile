@@ -311,10 +311,7 @@ class _SearchScreenState extends State<SearchScreen>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            AppColors.background,
-            AppColors.backgroundLight,
-          ],
+          colors: [AppColors.background, AppColors.backgroundLight],
         ),
       ),
       child: Column(
@@ -645,7 +642,9 @@ class _SearchScreenState extends State<SearchScreen>
                     placeholder: (context, url) => Container(
                       color: AppColors.surface,
                       child: const Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -722,7 +721,9 @@ class _SearchScreenState extends State<SearchScreen>
                     placeholder: (context, url) => Container(
                       color: AppColors.surface,
                       child: const Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
