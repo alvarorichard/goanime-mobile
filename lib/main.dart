@@ -23,7 +23,7 @@ import 'services/allanime_service.dart';
 import 'services/locale_service.dart';
 import 'l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'screens/video_player_screen.dart';
 
 void main() {
@@ -85,7 +85,8 @@ class Anime {
   final String url;
   final AnimeSource source;
   final String? allAnimeId; // ID do AllAnime para buscar episódios
-  final String? fallbackImageUrl; // Imagem de fallback antes do AniList carregar
+  final String?
+  fallbackImageUrl; // Imagem de fallback antes do AniList carregar
   MediaDetails? aniListData;
   bool isLoadingAniList = false;
 
@@ -101,8 +102,7 @@ class Anime {
   @override
   String toString() => name;
 
-  String get imageUrl =>
-      aniListData?.coverImage.best ?? fallbackImageUrl ?? '';
+  String get imageUrl => aniListData?.coverImage.best ?? fallbackImageUrl ?? '';
   String get bannerUrl => aniListData?.bannerImage ?? '';
   String get description => aniListData?.description ?? '';
   int? get malId => aniListData?.idMal;
@@ -286,12 +286,12 @@ class AnimeService {
         final episodeInfo = show.episodeCount > 0
             ? ' (${show.episodeCount} eps)'
             : '';
-        
+
         // Usar thumbnail do AllAnime como fallback se disponível
         final fallbackImage = show.thumbnail?.isNotEmpty == true
             ? show.thumbnail!
             : null;
-        
+
         animes.add(
           Anime(
             name: '${show.displayName}$episodeInfo',
@@ -936,7 +936,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final localeService = Provider.of<LocaleService>(context);
-    
+
     return AnimatedBuilder(
       animation: _themeProvider,
       builder: (context, _) {
@@ -994,7 +994,7 @@ class _MyAppState extends State<MyApp> {
           themeMode: _themeProvider.isDarkMode
               ? ThemeMode.dark
               : ThemeMode.light,
-          home: const HomeScreen(),
+          home: const MainNavigationScreen(),
         );
       },
     );
@@ -2688,10 +2688,10 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             ModernVideoPlayerScreen(
-          episode: episode,
-          animeTitle: widget.anime.name,
-          anime: widget.anime, // Passar anime completo
-        ),
+              episode: episode,
+              animeTitle: widget.anime.name,
+              anime: widget.anime, // Passar anime completo
+            ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
             position: animation.drive(
@@ -2878,24 +2878,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       // Verificar se é AllAnime
       if (widget.anime?.source == AnimeSource.allAnime) {
         debugPrint('[VideoPlayer] Getting AllAnime episode URL');
-        
+
         final animeId = widget.anime!.allAnimeId ?? widget.anime!.url;
-        final episodeNo = widget.episode.url; // Para AllAnime, url é o número do episódio
-        
+        final episodeNo =
+            widget.episode.url; // Para AllAnime, url é o número do episódio
+
         // Buscar URL do episódio no AllAnime
-        final allAnimeUrl = await AllAnimeService.getEpisodeURL(animeId, episodeNo);
-        
+        final allAnimeUrl = await AllAnimeService.getEpisodeURL(
+          animeId,
+          episodeNo,
+        );
+
         if (allAnimeUrl == null || allAnimeUrl.isEmpty) {
           throw Exception('URL do vídeo não encontrada no AllAnime');
         }
-        
+
         videoSrc = allAnimeUrl;
         debugPrint('[VideoPlayer] AllAnime video URL: $videoSrc');
       } else {
         // AnimeFire - comportamento padrão
         debugPrint('[VideoPlayer] Getting AnimeFire episode URL');
         videoSrc = await AnimeService.extractVideoURL(widget.episode.url);
-        
+
         if (videoSrc.isEmpty) {
           throw Exception('URL do vídeo não encontrada na página');
         }
