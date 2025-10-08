@@ -5,12 +5,15 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  final VoidCallback? onBackPressed;
+  
+  const SettingsScreen({super.key, this.onBackPressed});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final localeService = Provider.of<LocaleService>(context);
+    final canPop = Navigator.canPop(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -33,7 +36,13 @@ class SettingsScreen extends StatelessWidget {
             ),
             child: const Icon(Icons.arrow_back, color: Colors.white),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (canPop) {
+              Navigator.pop(context);
+            } else if (onBackPressed != null) {
+              onBackPressed!();
+            }
+          },
         ),
       ),
       body: ListView(

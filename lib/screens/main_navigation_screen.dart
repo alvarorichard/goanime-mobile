@@ -16,16 +16,20 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  // Lista de telas para o IndexedStack
-  static const List<Widget> _screens = [
-    HomeScreen(),
-    SearchScreen(),
-    WatchlistScreen(),
-    SettingsScreen(),
-  ];
+  void _navigateToHome() {
+    setState(() => _currentIndex = 0);
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Lista de telas para o IndexedStack
+    final List<Widget> _screens = [
+      const HomeScreen(),
+      SearchScreen(onBackPressed: _navigateToHome),
+      const WatchlistScreen(),
+      SettingsScreen(onBackPressed: _navigateToHome),
+    ];
+
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {

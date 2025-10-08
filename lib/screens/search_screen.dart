@@ -10,7 +10,9 @@ import '../theme/app_colors.dart';
 import 'source_selection_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final VoidCallback? onBackPressed;
+  
+  const SearchScreen({super.key, this.onBackPressed});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -281,13 +283,15 @@ class _SearchScreenState extends State<SearchScreen>
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.canPop(context);
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // Search Header
-            _buildSearchHeader(),
+            _buildSearchHeader(canPop),
 
             // Genre Filters
             if (!_showHistory) _buildGenreFilters(),
@@ -304,7 +308,7 @@ class _SearchScreenState extends State<SearchScreen>
     );
   }
 
-  Widget _buildSearchHeader() {
+  Widget _buildSearchHeader(bool canPop) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -321,7 +325,13 @@ class _SearchScreenState extends State<SearchScreen>
               // Back button
               IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  if (canPop) {
+                    Navigator.pop(context);
+                  } else if (widget.onBackPressed != null) {
+                    widget.onBackPressed!();
+                  }
+                },
               ),
               const SizedBox(width: 8),
 
