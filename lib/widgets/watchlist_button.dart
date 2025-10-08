@@ -3,6 +3,7 @@ import '../models/watchlist_anime.dart';
 import '../services/watchlist_service.dart';
 import '../services/watchlist_notifier.dart';
 import '../theme/app_colors.dart';
+import '../l10n/app_localizations.dart';
 
 class WatchlistButton extends StatefulWidget {
   final String animeId;
@@ -43,10 +44,11 @@ class _WatchlistButtonState extends State<WatchlistButton> {
     }
   }
 
-  // --- IGNORE --- 
+  // --- IGNORE ---
 
   Future<void> _toggleWatchlist() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
 
     if (_isInWatchlist) {
       final success = await _watchlistService.removeFromWatchlist(
@@ -57,7 +59,7 @@ class _WatchlistButtonState extends State<WatchlistButton> {
         WatchlistNotifier().notifyWatchlistChanged();
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Removido da watchlist'),
+            content: Text(l10n.removedFromWatchlistShort),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -78,7 +80,7 @@ class _WatchlistButtonState extends State<WatchlistButton> {
         WatchlistNotifier().notifyWatchlistChanged();
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Adicionado à watchlist'),
+            content: Text(l10n.addedToWatchlist),
             backgroundColor: AppColors.primary,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),

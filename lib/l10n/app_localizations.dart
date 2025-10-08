@@ -153,6 +153,36 @@ class AppLocalizations {
   String get googleVideo =>
       locale.languageCode == 'pt' ? 'Google Video' : 'Google Video';
 
+  // Watchlist Screen
+  String get watchlist =>
+      locale.languageCode == 'pt' ? 'Watchlist' : 'Watchlist';
+  String get clearWatchlist =>
+      locale.languageCode == 'pt' ? 'Limpar watchlist' : 'Clear watchlist';
+  String get watchlistEmpty => locale.languageCode == 'pt'
+      ? 'Sua watchlist está vazia'
+      : 'Your watchlist is empty';
+  String get addAnimesToWatchLater => locale.languageCode == 'pt'
+      ? 'Adicione animes para assistir depois'
+      : 'Add anime to watch later';
+  String get addedToWatchlist => locale.languageCode == 'pt'
+      ? 'Adicionado à watchlist'
+      : 'Added to watchlist';
+  String get removedFromWatchlistShort => locale.languageCode == 'pt'
+      ? 'Removido da watchlist'
+      : 'Removed from watchlist';
+  String removedFromWatchlist(String title) => locale.languageCode == 'pt'
+      ? '$title removido da watchlist'
+      : '$title removed from watchlist';
+  String get clearWatchlistQuestion =>
+      locale.languageCode == 'pt' ? 'Limpar Watchlist?' : 'Clear Watchlist?';
+  String get clearWatchlistConfirmation => locale.languageCode == 'pt'
+      ? 'Tem certeza que deseja remover todos os animes da watchlist?'
+      : 'Are you sure you want to remove all anime from the watchlist?';
+  String get cancel => locale.languageCode == 'pt' ? 'Cancelar' : 'Cancel';
+  String get clear => locale.languageCode == 'pt' ? 'Limpar' : 'Clear';
+  String get watchlistCleared =>
+      locale.languageCode == 'pt' ? 'Watchlist limpa' : 'Watchlist cleared';
+
   // Settings Screen
   String get language => locale.languageCode == 'pt' ? 'Idioma' : 'Language';
   String get selectLanguage =>

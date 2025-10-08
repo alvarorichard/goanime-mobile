@@ -4,6 +4,7 @@ import '../models/watchlist_anime.dart';
 import '../services/watchlist_service.dart';
 import '../services/watchlist_notifier.dart';
 import '../theme/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import 'source_selection_screen.dart';
 
 class WatchlistScreen extends StatefulWidget {
@@ -56,9 +57,10 @@ class _WatchlistScreenState extends State<WatchlistScreen>
   Future<void> _removeFromWatchlist(WatchlistAnime anime) async {
     final success = await _watchlistService.removeFromWatchlist(anime.animeId);
     if (success && mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${anime.title} removido da watchlist'),
+          content: Text(l10n.removedFromWatchlist(anime.title)),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -70,6 +72,7 @@ class _WatchlistScreenState extends State<WatchlistScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -79,9 +82,9 @@ class _WatchlistScreenState extends State<WatchlistScreen>
           children: [
             Icon(Icons.bookmark, color: AppColors.primary, size: 28),
             const SizedBox(width: 12),
-            const Text(
-              'Watchlist',
-              style: TextStyle(
+            Text(
+              l10n.watchlist,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -93,7 +96,7 @@ class _WatchlistScreenState extends State<WatchlistScreen>
           if (_watchlist.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep, color: Colors.white70),
-              tooltip: 'Limpar watchlist',
+              tooltip: l10n.clearWatchlist,
               onPressed: () => _showClearDialog(),
             ),
         ],
@@ -127,6 +130,7 @@ class _WatchlistScreenState extends State<WatchlistScreen>
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -138,7 +142,7 @@ class _WatchlistScreenState extends State<WatchlistScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            'Sua watchlist está vazia',
+            l10n.watchlistEmpty,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: 20,
@@ -147,7 +151,7 @@ class _WatchlistScreenState extends State<WatchlistScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            'Adicione animes para assistir depois',
+            l10n.addAnimesToWatchLater,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.5),
               fontSize: 16,
@@ -278,24 +282,25 @@ class _WatchlistScreenState extends State<WatchlistScreen>
   }
 
   void _showClearDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text(
-          'Limpar Watchlist?',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.clearWatchlistQuestion,
+          style: const TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          'Tem certeza que deseja remover todos os animes da watchlist?',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          l10n.clearWatchlistConfirmation,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.white70),
+            child: Text(
+              l10n.cancel,
+              style: const TextStyle(color: Colors.white70),
             ),
           ),
           TextButton(
@@ -307,15 +312,15 @@ class _WatchlistScreenState extends State<WatchlistScreen>
               _loadWatchlist();
               if (mounted) {
                 messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Watchlist limpa'),
+                  SnackBar(
+                    content: Text(l10n.watchlistCleared),
                     backgroundColor: AppColors.primary,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: Text('Limpar', style: TextStyle(color: AppColors.error)),
+            child: Text(l10n.clear, style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
