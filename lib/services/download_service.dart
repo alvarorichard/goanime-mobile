@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../main.dart' show AnimeService;
+import 'allanime_service.dart';
 
 /// Download status enum
 enum DownloadStatus {
@@ -340,38 +341,33 @@ class DownloadService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Validate URL
-      final Uri uri;
-      try {
-        uri = Uri.parse(download.videoUrl);
-        if (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https')) {
-          throw Exception('Invalid URL scheme');
+      // Check if this is an AllAnime episode (videoUrl is just episode number)
+      final isAllAnimeEpisode =
+          !download.videoUrl.startsWith('http') &&
+          int.tryParse(download.videoUrl) != null;
+
+      if (!isAllAnimeEpisode) {
+        // Validate URL for AnimeFire - must be a full URL
+        final Uri uri;
+        try {
+          uri = Uri.parse(download.videoUrl);
+          if (!uri.hasScheme ||
+              (uri.scheme != 'http' && uri.scheme != 'https')) {
+            throw Exception('Invalid URL format');
+          }
+          if (uri.host.isEmpty) {
+            throw Exception('Invalid URL format');
+          }
+        } catch (e) {
+          if (e.toString().contains('Invalid URL format')) {
+            rethrow;
+          }
+          throw Exception('Invalid video URL: ${download.videoUrl}');
         }
-        if (uri.host.isEmpty) {
-          throw Exception('No host specified in URL');
-        }
-      } catch (e) {
-        throw Exception('Invalid video URL: ${download.videoUrl}');
       }
 
-      // Determine if URL is HLS/m3u8 or direct video
-      final isHls =
-          download.videoUrl.contains('.m3u8') ||
-          download.videoUrl.contains('master.m3u8') ||
-          download.videoUrl.contains('wixmp.com') ||
-          download.videoUrl.contains('blogger.com') ||
-          download.videoUrl.contains('allanime');
-
-      if (isHls) {
-        // For HLS streams, we'd need a proper HLS downloader
-        // For now, throw error as HLS download requires external tools
-        throw Exception(
-          'HLS/streaming downloads not yet supported. Only AnimeFire downloads work currently.',
-        );
-      } else {
-        // Direct HTTP download
-        await _downloadHttp(id);
-      }
+      // Start the download (URL resolution happens in _downloadHttp)
+      await _downloadHttp(id);
     } catch (e) {
       debugPrint('Download error for $id: $e');
       _downloads[id] = download.copyWith(
@@ -397,22 +393,86 @@ class DownloadService extends ChangeNotifier {
 
     debugPrint('[Download] Starting download for $id');
     debugPrint('[Download] Episode URL: ${download.videoUrl}');
+    debugPrint('[Download] Anime ID: ${download.animeId}');
 
     // Resolve the actual video URL (extract from page and get direct link)
     String actualVideoUrl;
     try {
       debugPrint('[Download] Resolving video URL...');
 
-      // Step 1: Extract video source from episode page
-      final videoSrc = await AnimeService.extractVideoURL(download.videoUrl);
-      debugPrint('[Download] Extracted video source: $videoSrc');
+      // Check if this is an AllAnime episode (videoUrl is just episode number)
+      final isAllAnimeEpisode =
+          !download.videoUrl.startsWith('http') &&
+          int.tryParse(download.videoUrl) != null;
 
-      // Step 2: Get the actual video URL
-      final videoResult = await AnimeService.extractActualVideoURL(videoSrc);
-      actualVideoUrl = videoResult.url;
-      debugPrint('[Download] Resolved video URL: $actualVideoUrl');
+      if (isAllAnimeEpisode) {
+        // AllAnime: use AllAnimeService to get video URL
+        debugPrint(
+          '[Download] Detected AllAnime episode, fetching video URL...',
+        );
+
+        // animeId is the AllAnime show ID (e.g., "8sB7F65RGSQ3dMjYa")
+        final animeShowId = download.animeId;
+        final episodeNumber = download.videoUrl;
+
+        debugPrint(
+          '[Download] AllAnime Show ID: $animeShowId, Episode: $episodeNumber',
+        );
+
+        final videoUrl = await AllAnimeService.getEpisodeURL(
+          animeShowId,
+          episodeNumber,
+        );
+
+        if (videoUrl == null || videoUrl.isEmpty) {
+          throw Exception('Failed to get video URL from AllAnime');
+        }
+
+        debugPrint('[Download] AllAnime video URL: $videoUrl');
+
+        // Check if it's HLS
+        if (videoUrl.contains('.m3u8') || videoUrl.contains('master.m3u8')) {
+          throw Exception(
+            'AllAnime uses HLS streaming which cannot be downloaded. Try AnimeFire source instead.',
+          );
+        }
+
+        actualVideoUrl = videoUrl;
+      } else {
+        // AnimeFire: use AnimeService URL extraction
+        debugPrint(
+          '[Download] Detected AnimeFire episode, extracting video URL...',
+        );
+
+        // Step 1: Extract video source from episode page
+        final videoSrc = await AnimeService.extractVideoURL(download.videoUrl);
+        debugPrint('[Download] Extracted video source: $videoSrc');
+
+        // Check if it's an HLS/m3u8 URL after extraction
+        if (videoSrc.contains('.m3u8') || videoSrc.contains('master.m3u8')) {
+          throw Exception(
+            'This source uses HLS streaming which cannot be downloaded. Try a different source.',
+          );
+        }
+
+        // Step 2: Get the actual video URL
+        final videoResult = await AnimeService.extractActualVideoURL(videoSrc);
+        actualVideoUrl = videoResult.url;
+        debugPrint('[Download] Resolved video URL: $actualVideoUrl');
+
+        // Final check for HLS
+        if (actualVideoUrl.contains('.m3u8') ||
+            actualVideoUrl.contains('master.m3u8')) {
+          throw Exception(
+            'This source uses HLS streaming which cannot be downloaded. Try a different source.',
+          );
+        }
+      }
     } catch (e) {
       debugPrint('[Download] Failed to resolve video URL: $e');
+      if (e.toString().contains('HLS') || e.toString().contains('streaming')) {
+        rethrow;
+      }
       throw Exception('Failed to get video URL: $e');
     }
 
@@ -452,6 +512,10 @@ class DownloadService extends ChangeNotifier {
       final file = File(filePath);
       final sink = file.openWrite();
       int bytesDownloaded = 0;
+      int lastNotificationBytes = 0;
+      int lastSaveBytes = 0;
+      const notificationInterval = 256 * 1024; // 256KB
+      const saveInterval = 1024 * 1024; // 1MB
 
       await for (var chunk in response.stream) {
         // Check if download was cancelled
@@ -471,7 +535,7 @@ class DownloadService extends ChangeNotifier {
         sink.add(chunk);
         bytesDownloaded += chunk.length;
 
-        // Update progress
+        // Update progress in memory
         final progress = totalBytes > 0 ? bytesDownloaded / totalBytes : 0.0;
         _downloads[id] = _downloads[id]!.copyWith(
           progress: progress,
@@ -479,21 +543,24 @@ class DownloadService extends ChangeNotifier {
           totalBytes: totalBytes > 0 ? totalBytes : bytesDownloaded,
         );
 
-        // Save to DB and log every 1% or every 1MB, whichever is less frequent
+        // Notify UI every 256KB
+        if (bytesDownloaded - lastNotificationBytes >= notificationInterval) {
+          lastNotificationBytes = bytesDownloaded;
+          notifyListeners();
+        }
+
+        // Save to DB and log every 1MB or 1%
         final shouldSave = totalBytes > 0
-            ? (totalBytes >= 100 && bytesDownloaded % (totalBytes ~/ 100) == 0)
-            : (bytesDownloaded % (1024 * 1024) == 0); // Every 1MB
+            ? (totalBytes >= 100 &&
+                  (bytesDownloaded - lastSaveBytes) >= (totalBytes ~/ 100))
+            : ((bytesDownloaded - lastSaveBytes) >= saveInterval);
 
         if (shouldSave) {
+          lastSaveBytes = bytesDownloaded;
           debugPrint(
             '[Download] Progress: ${(progress * 100).toStringAsFixed(1)}% (${(bytesDownloaded / 1024 / 1024).toStringAsFixed(2)} MB)',
           );
           await _saveDownload(_downloads[id]!);
-        }
-
-        // Notify UI more frequently - every 256KB
-        if (bytesDownloaded % (256 * 1024) == 0) {
-          notifyListeners();
         }
       }
 
@@ -615,6 +682,21 @@ class DownloadService extends ChangeNotifier {
         .toList();
 
     for (var download in completed) {
+      await deleteDownload(download.id);
+    }
+  }
+
+  /// Clear all failed downloads
+  Future<void> clearFailedDownloads() async {
+    final failed = _downloads.values
+        .where(
+          (d) =>
+              d.status == DownloadStatus.failed ||
+              d.status == DownloadStatus.cancelled,
+        )
+        .toList();
+
+    for (var download in failed) {
       await deleteDownload(download.id);
     }
   }

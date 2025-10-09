@@ -525,6 +525,9 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               onTap: () => _openEpisode(episode),
               animeTitle: widget.anime.name,
               animeThumbnail: widget.anime.imageUrl,
+              sourceName: widget.anime.sourceName,
+              animeUrl: widget.anime.url,
+              allAnimeId: widget.anime.allAnimeId,
             ),
           );
         }, childCount: _episodes.length),
@@ -549,6 +552,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             index: index,
             onTap: () => _openEpisode(episode),
             animeTitle: widget.anime.name,
+            sourceName: widget.anime.sourceName,
           );
         }, childCount: _episodes.length),
       ),
@@ -641,6 +645,9 @@ class _EpisodeListCard extends StatelessWidget {
   final VoidCallback onTap;
   final String animeTitle;
   final String animeThumbnail;
+  final String sourceName;
+  final String animeUrl;
+  final String? allAnimeId;
 
   const _EpisodeListCard({
     required this.episode,
@@ -648,6 +655,9 @@ class _EpisodeListCard extends StatelessWidget {
     required this.onTap,
     required this.animeTitle,
     required this.animeThumbnail,
+    required this.sourceName,
+    required this.animeUrl,
+    this.allAnimeId,
   });
 
   @override
@@ -734,7 +744,9 @@ class _EpisodeListCard extends StatelessWidget {
 
             // Download Button
             DownloadButton(
-              animeId: animeTitle,
+              animeId:
+                  allAnimeId ??
+                  animeUrl, // Use AllAnime ID if available, otherwise URL
               animeName: animeTitle,
               episodeNumber: _getEpisodeNumber(episode.number, index),
               episodeTitle: _getEpisodeLabel(episode.number, index),
@@ -770,12 +782,14 @@ class _EpisodeGridCard extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
   final String animeTitle;
+  final String sourceName;
 
   const _EpisodeGridCard({
     required this.episode,
     required this.index,
     required this.onTap,
     required this.animeTitle,
+    required this.sourceName,
   });
 
   @override
