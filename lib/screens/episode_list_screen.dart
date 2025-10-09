@@ -131,7 +131,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
     showDialog(
       context: context,
       builder: (context) => BatchDownloadDialog(
-        animeId: widget.anime.url,
+        animeId: widget.anime.allAnimeId ?? widget.anime.url,
         animeName: widget.anime.name,
         thumbnailUrl: widget.anime.imageUrl,
         episodes: _episodes.map((e) {

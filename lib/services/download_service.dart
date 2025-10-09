@@ -497,7 +497,7 @@ class DownloadService extends ChangeNotifier {
       final totalBytes =
           int.tryParse(headResponse.headers['content-length'] ?? '0') ?? 0;
       debugPrint(
-        '[Download] Total size: ${totalBytes} bytes (${(totalBytes / 1024 / 1024).toStringAsFixed(2)} MB)',
+        '[Download] Total size: $totalBytes bytes (${(totalBytes / 1024 / 1024).toStringAsFixed(2)} MB)',
       );
 
       // Start streaming download
