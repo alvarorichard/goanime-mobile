@@ -29,9 +29,9 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
 
   bool _isSearchingAllAnime = false;
   bool _isSearchingAnimeFire = false;
-  String? _allAnimeId;
+  List<AllAnimeShow> _allAnimeResults = [];
   String? _allAnimeErrorMessage;
-  Anime? _animeFireResult;
+  List<Anime> _animeFireResults = [];
   String? _animeFireErrorMessage;
 
   @override
@@ -65,7 +65,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
 
       if (searchResponse != null && searchResponse.shows.isNotEmpty) {
         setState(() {
-          _allAnimeId = searchResponse.shows.first.id;
+          _allAnimeResults = searchResponse.shows;
           _isSearchingAllAnime = false;
         });
       } else {
@@ -99,7 +99,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
 
       if (animeFireResults.isNotEmpty) {
         setState(() {
-          _animeFireResult = animeFireResults.first;
+          _animeFireResults = animeFireResults;
           _isSearchingAnimeFire = false;
         });
       } else {
@@ -119,36 +119,169 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
     }
   }
 
-  void _selectSource(AnimeSource source) {
-    Anime anime;
+  Future<void> _selectSource(AnimeSource source) async {
+    if (source == AnimeSource.allAnime && _allAnimeResults.isNotEmpty) {
+      // Se houver múltiplos resultados, mostra dialog para escolher
+      if (_allAnimeResults.length > 1) {
+        final selectedShow = await _showVersionSelectionDialog(
+          source: source,
+          allAnimeShows: _allAnimeResults,
+        );
+        if (selectedShow == null) return; // User cancelled
 
-    if (source == AnimeSource.allAnime && _allAnimeId != null) {
-      // Para AllAnime, cria um novo anime com o ID encontrado
-      anime = Anime(
-        name: widget.animeTitle,
-        url: widget.myAnimeListUrl,
-        fallbackImageUrl: widget.imageUrl,
-        source: AnimeSource.allAnime,
-        allAnimeId: _allAnimeId,
-      );
-    } else if (source == AnimeSource.animeFire && _animeFireResult != null) {
-      // Para AnimeFire, usa o anime já encontrado na busca
-      anime = _animeFireResult!;
+        final anime = Anime(
+          name: selectedShow.displayName,
+          url: widget.myAnimeListUrl,
+          fallbackImageUrl: widget.imageUrl,
+          source: AnimeSource.allAnime,
+          allAnimeId: selectedShow.id,
+        );
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ModernEpisodeListScreen(anime: anime),
+          ),
+        );
+      } else {
+        // Apenas um resultado, usa diretamente
+        final show = _allAnimeResults.first;
+        final anime = Anime(
+          name: show.displayName,
+          url: widget.myAnimeListUrl,
+          fallbackImageUrl: widget.imageUrl,
+          source: AnimeSource.allAnime,
+          allAnimeId: show.id,
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ModernEpisodeListScreen(anime: anime),
+          ),
+        );
+      }
+    } else if (source == AnimeSource.animeFire &&
+        _animeFireResults.isNotEmpty) {
+      // Se houver múltiplos resultados, mostra dialog para escolher
+      if (_animeFireResults.length > 1) {
+        final selectedAnime = await _showVersionSelectionDialog(
+          source: source,
+          animeFireAnimes: _animeFireResults,
+        );
+        if (selectedAnime == null) return; // User cancelled
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ModernEpisodeListScreen(anime: selectedAnime),
+          ),
+        );
+      } else {
+        // Apenas um resultado, usa diretamente
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                ModernEpisodeListScreen(anime: _animeFireResults.first),
+          ),
+        );
+      }
     } else {
       // Fallback (não deveria acontecer)
-      anime = Anime(
+      final anime = Anime(
         name: widget.animeTitle,
         url: widget.myAnimeListUrl,
         fallbackImageUrl: widget.imageUrl,
         source: source,
       );
-    }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ModernEpisodeListScreen(anime: anime),
-      ),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ModernEpisodeListScreen(anime: anime),
+        ),
+      );
+    }
+  }
+
+  Future<dynamic> _showVersionSelectionDialog({
+    required AnimeSource source,
+    List<AllAnimeShow>? allAnimeShows,
+    List<Anime>? animeFireAnimes,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.backgroundLight,
+          title: Text(
+            l10n.locale.languageCode == 'pt'
+                ? 'Selecione a versão'
+                : 'Select Version',
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: source == AnimeSource.allAnime
+                  ? (allAnimeShows?.length ?? 0)
+                  : (animeFireAnimes?.length ?? 0),
+              itemBuilder: (context, index) {
+                if (source == AnimeSource.allAnime && allAnimeShows != null) {
+                  final show = allAnimeShows[index];
+                  return ListTile(
+                    title: Text(
+                      show.displayName,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      '${show.episodeCount} episodes',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.orange,
+                    ),
+                    onTap: () => Navigator.pop(context, show),
+                  );
+                } else if (source == AnimeSource.animeFire &&
+                    animeFireAnimes != null) {
+                  final anime = animeFireAnimes[index];
+                  return ListTile(
+                    title: Text(
+                      anime.name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.orange,
+                    ),
+                    onTap: () => Navigator.pop(context, anime),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                l10n.locale.languageCode == 'pt' ? 'Cancelar' : 'Cancel',
+                style: const TextStyle(color: Colors.orange),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -258,16 +391,18 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     title: 'AllAnime',
                     subtitle: _isSearchingAllAnime
                         ? l10n.searching
-                        : _allAnimeId != null
-                        ? 'Available • Subtitled'
+                        : _allAnimeResults.isNotEmpty
+                        ? _allAnimeResults.length > 1
+                              ? 'Available • ${_allAnimeResults.length} versions found'
+                              : 'Available • Subtitled'
                         : _allAnimeErrorMessage ?? 'Unavailable',
                     icon: Icons.public,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                     ),
-                    available: _allAnimeId != null,
+                    available: _allAnimeResults.isNotEmpty,
                     isLoading: _isSearchingAllAnime,
-                    onTap: _allAnimeId != null
+                    onTap: _allAnimeResults.isNotEmpty
                         ? () => _selectSource(AnimeSource.allAnime)
                         : null,
                   ),
@@ -279,16 +414,20 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     title: 'AnimeFire',
                     subtitle: _isSearchingAnimeFire
                         ? l10n.searching
-                        : _animeFireResult != null
-                        ? 'Available • Dubbed/Subtitled'
+                        : _animeFireResults.isNotEmpty
+                        ? _animeFireResults.length > 1
+                              ? 'Available • ${_animeFireResults.length} versions found'
+                              : 'Available • Dubbed/Subtitled'
                         : _animeFireErrorMessage ?? 'Unavailable',
                     icon: Icons.local_fire_department,
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
                     ),
-                    available: _animeFireResult != null,
+                    available: _animeFireResults.isNotEmpty,
                     isLoading: _isSearchingAnimeFire,
-                    onTap: () => _selectSource(AnimeSource.animeFire),
+                    onTap: _animeFireResults.isNotEmpty
+                        ? () => _selectSource(AnimeSource.animeFire)
+                        : null,
                   ),
 
                   const SizedBox(height: 32),
