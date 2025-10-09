@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'watchlist_screen.dart';
+import 'downloads_screen.dart';
 import 'settings_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const HomeScreen(),
       SearchScreen(onBackPressed: _navigateToHome),
       const WatchlistScreen(),
+      const DownloadsScreen(),
       SettingsScreen(onBackPressed: _navigateToHome),
     ];
 
@@ -66,6 +68,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             BottomNavyBarItem(
               icon: const Icon(Ionicons.bookmark_outline),
               title: const Text('Watchlist'),
+              activeColor: AppColors.primary,
+              inactiveColor: Colors.grey,
+              textAlign: TextAlign.center,
+            ),
+            BottomNavyBarItem(
+              icon: const Icon(Ionicons.download_outline),
+              title: const Text('Downloads'),
               activeColor: AppColors.primary,
               inactiveColor: Colors.grey,
               textAlign: TextAlign.center,

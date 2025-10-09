@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
 import 'video_player_screen.dart';
 import '../theme/app_colors.dart';
+import '../widgets/download_button.dart';
+import '../services/download_service.dart';
+
+export 'package:provider/provider.dart';
 
 // Function to remove HTML tags from description
 String _removeHtmlTags(String htmlText) {
@@ -122,6 +127,28 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
     );
   }
 
+  void _showBatchDownloadDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => BatchDownloadDialog(
+        animeId: widget.anime.url,
+        animeName: widget.anime.name,
+        thumbnailUrl: widget.anime.imageUrl,
+        episodes: _episodes.map((e) {
+          final episodeNumber = _getEpisodeNumber(
+            e.number,
+            _episodes.indexOf(e),
+          );
+          return {
+            'number': episodeNumber,
+            'title': _getEpisodeLabel(e.number, _episodes.indexOf(e)),
+            'url': e.url,
+          };
+        }).toList(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,6 +187,15 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
       pinned: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
+      actions: [
+        // Batch download button
+        if (!_isLoading && _episodes.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.file_download, color: Colors.white),
+            tooltip: 'Batch Download',
+            onPressed: _showBatchDownloadDialog,
+          ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -488,6 +524,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
               index: index,
               onTap: () => _openEpisode(episode),
               animeTitle: widget.anime.name,
+              animeThumbnail: widget.anime.imageUrl,
             ),
           );
         }, childCount: _episodes.length),
@@ -511,6 +548,7 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
             episode: episode,
             index: index,
             onTap: () => _openEpisode(episode),
+            animeTitle: widget.anime.name,
           );
         }, childCount: _episodes.length),
       ),
@@ -602,12 +640,14 @@ class _EpisodeListCard extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
   final String animeTitle;
+  final String animeThumbnail;
 
   const _EpisodeListCard({
     required this.episode,
     required this.index,
     required this.onTap,
     required this.animeTitle,
+    required this.animeThumbnail,
   });
 
   @override
@@ -692,6 +732,18 @@ class _EpisodeListCard extends StatelessWidget {
               ),
             ),
 
+            // Download Button
+            DownloadButton(
+              animeId: animeTitle,
+              animeName: animeTitle,
+              episodeNumber: _getEpisodeNumber(episode.number, index),
+              episodeTitle: _getEpisodeLabel(episode.number, index),
+              videoUrl: episode.url,
+              thumbnailUrl: animeThumbnail,
+              quality: DownloadQuality.auto,
+            ),
+            const SizedBox(width: 8),
+
             // Play Icon
             Container(
               padding: const EdgeInsets.all(12),
@@ -717,11 +769,13 @@ class _EpisodeGridCard extends StatelessWidget {
   final Episode episode;
   final int index;
   final VoidCallback onTap;
+  final String animeTitle;
 
   const _EpisodeGridCard({
     required this.episode,
     required this.index,
     required this.onTap,
+    required this.animeTitle,
   });
 
   @override
@@ -776,6 +830,38 @@ class _EpisodeGridCard extends StatelessWidget {
                 ],
               ),
             ),
+            // Download status badge (top-left)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Consumer<DownloadService>(
+                builder: (context, downloadService, _) {
+                  final episodeNumber = _getEpisodeNumber(
+                    episode.number,
+                    index,
+                  );
+                  final downloadId = '${animeTitle}_$episodeNumber';
+                  final download = downloadService.getDownload(downloadId);
+
+                  if (download?.status == DownloadStatus.completed) {
+                    return Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.download_done,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+
             Positioned(
               bottom: 8,
               right: 8,

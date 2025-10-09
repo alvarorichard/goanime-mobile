@@ -25,11 +25,21 @@ import 'l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/video_player_screen.dart';
+import 'services/download_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize download service
+  final downloadService = DownloadService();
+  await downloadService.initialize();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LocaleService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocaleService()),
+        ChangeNotifierProvider.value(value: downloadService),
+      ],
       child: const MyApp(),
     ),
   );

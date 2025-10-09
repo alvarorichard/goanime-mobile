@@ -45,6 +45,7 @@ dependencies:
   sqflite: ^2.3.0
   # Path provider
   path: ^1.8.3
+  path_provider: ^2.1.1
   # WebView fallback for iOS playback
   webview_flutter: ^4.5.0
   # Image caching for better performance
