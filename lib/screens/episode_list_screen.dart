@@ -76,6 +76,12 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
   @override
   void initState() {
     super.initState();
+    debugPrint(
+      '[ModernEpisodeListScreen] initState - Anime: ${widget.anime.name}, '
+      'Has aniListData: ${widget.anime.aniListData != null}, '
+      'AniList ID: ${widget.anime.anilistId}, '
+      'MAL ID: ${widget.anime.malId}',
+    );
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -115,6 +121,12 @@ class _ModernEpisodeListScreenState extends State<ModernEpisodeListScreen>
   }
 
   void _openEpisode(Episode episode) {
+    debugPrint(
+      '[ModernEpisodeListScreen] Opening video - Anime: ${widget.anime.name}, '
+      'Has aniListData: ${widget.anime.aniListData != null}, '
+      'AniList ID: ${widget.anime.anilistId}, '
+      'MAL ID: ${widget.anime.malId}',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(

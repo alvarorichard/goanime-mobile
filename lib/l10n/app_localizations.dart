@@ -152,6 +152,10 @@ class AppLocalizations {
       locale.languageCode == 'pt' ? 'Optimized player' : 'Optimized player';
   String get googleVideo =>
       locale.languageCode == 'pt' ? 'Google Video' : 'Google Video';
+  String get skipIntro =>
+      locale.languageCode == 'pt' ? 'Pular Intro' : 'Skip Intro';
+  String get skipOutro =>
+      locale.languageCode == 'pt' ? 'Pular Encerramento' : 'Skip Outro';
 
   // Watchlist Screen
   String get watchlist =>

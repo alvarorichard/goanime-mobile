@@ -137,6 +137,9 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
           allAnimeId: selectedShow.id,
         );
 
+        // Enrich with AniList data before navigating
+        await AnimeService.enrichAnimeWithAniList(anime);
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -155,6 +158,10 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
           allAnimeId: show.id,
         );
 
+        // Enrich with AniList data before navigating
+        await AnimeService.enrichAnimeWithAniList(anime);
+
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -172,6 +179,9 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
         );
         if (selectedAnime == null) return; // User cancelled
 
+        // Enrich with AniList data before navigating
+        await AnimeService.enrichAnimeWithAniList(selectedAnime);
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -181,11 +191,16 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
         );
       } else {
         // Apenas um resultado, usa diretamente
+        final anime = _animeFireResults.first;
+
+        // Enrich with AniList data before navigating
+        await AnimeService.enrichAnimeWithAniList(anime);
+
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ModernEpisodeListScreen(anime: _animeFireResults.first),
+            builder: (context) => ModernEpisodeListScreen(anime: anime),
           ),
         );
       }
@@ -198,6 +213,10 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
         source: source,
       );
 
+      // Enrich with AniList data before navigating
+      await AnimeService.enrichAnimeWithAniList(anime);
+
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

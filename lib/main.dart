@@ -2218,6 +2218,12 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint(
+      '[EpisodeListScreen] initState - Anime: ${widget.anime.name}, '
+      'Has aniListData: ${widget.anime.aniListData != null}, '
+      'AniList ID: ${widget.anime.anilistId}, '
+      'MAL ID: ${widget.anime.malId}',
+    );
     _loadEpisodes();
   }
 
@@ -2693,6 +2699,12 @@ class _EpisodeListScreenState extends State<EpisodeListScreen> {
 
   void _openEpisode(Episode episode) {
     HapticFeedback.lightImpact();
+    debugPrint(
+      '[EpisodeListScreen] Opening video - Anime: ${widget.anime.name}, '
+      'Has aniListData: ${widget.anime.aniListData != null}, '
+      'AniList ID: ${widget.anime.anilistId}, '
+      'MAL ID: ${widget.anime.malId}',
+    );
     Navigator.push(
       context,
       PageRouteBuilder(

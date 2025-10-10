@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,9 @@ import 'package:chewie/chewie.dart';
 import '../main.dart';
 import '../google_video_proxy.dart';
 import '../services/allanime_service.dart';
+import '../services/aniskip_service.dart';
+import '../models/aniskip_models.dart';
+import '../widgets/skip_button.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 
@@ -60,24 +64,429 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   GoogleVideoProxy? _googleVideoProxy;
   bool _isGoogleStream = false;
 
+  // AniSkip related variables
+  SkipTimes? _skipTimes;
+  bool _showSkipButton = false;
+  String _skipButtonLabel = '';
+  Timer? _positionTimer;
+  Timer? _skipButtonAutoHideTimer;
+  int _skipTimesRetryCount = 0;
+  static const int _maxSkipTimesRetries = 3;
+  static const double _skipLeadSeconds = 3.0;
+  static const double _skipHoldSeconds = 2.0;
+  static const Duration _skipAutoHideDuration = Duration(seconds: 4);
+  String? _skipButtonActiveSegment;
+  bool _skipButtonDismissed = false;
+  String? _activeEpisodeKey;
+
+  String _buildEpisodeKey(ModernVideoPlayerScreen target) {
+    final anime = target.anime;
+    final buffer = StringBuffer()
+      ..write(target.animeTitle)
+      ..write('::')
+      ..write(target.episode.number)
+      ..write('::')
+      ..write(target.episode.url);
+
+    if (anime != null) {
+      final identifiers = <String?>[
+        anime.anilistId?.toString(),
+        anime.malId?.toString(),
+        anime.allAnimeId,
+        anime.url,
+      ];
+
+      final extraIdentifier = identifiers.firstWhere(
+        (value) => value != null && value.isNotEmpty,
+        orElse: () => null,
+      );
+
+      if (extraIdentifier != null) {
+        buffer
+          ..write('::')
+          ..write(extraIdentifier);
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  bool _isActiveEpisode(String? key) {
+    if (key == null) {
+      return false;
+    }
+    return mounted && _activeEpisodeKey == key;
+  }
+
   @override
   void initState() {
     super.initState();
     _initializeVideoPlayer();
   }
 
+  @override
+  void didUpdateWidget(covariant ModernVideoPlayerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousKey = _buildEpisodeKey(oldWidget);
+    final nextKey = _buildEpisodeKey(widget);
+
+    if (previousKey != nextKey) {
+      debugPrint(
+        '[VideoPlayer] Episode context changed. Reinitializing player…',
+      );
+      _initializeVideoPlayer();
+    }
+  }
+
+  /// Load skip times from AniSkip API using multiple strategies
+  Future<void> _loadSkipTimes({int? episodeLengthSeconds}) async {
+    final requestKey = _activeEpisodeKey;
+    if (!_isActiveEpisode(requestKey)) {
+      debugPrint('[AniSkip] ⏭️  Skipping load - episode changed.');
+      return;
+    }
+
+    final malId = widget.anime?.malId;
+    final anilistId = widget.anime?.anilistId;
+
+    // Debug: Show anime info
+    debugPrint('[AniSkip] 🔍 Checking anime data...');
+    debugPrint('[AniSkip] Anime: ${widget.animeTitle}');
+    debugPrint('[AniSkip] Source: ${widget.anime?.sourceName}');
+    debugPrint(
+      '[AniSkip] Has aniListData: ${widget.anime?.aniListData != null}',
+    );
+    debugPrint('[AniSkip] AniList ID: $anilistId');
+    debugPrint('[AniSkip] MAL ID: $malId');
+
+    if (malId == null && anilistId == null) {
+      debugPrint(
+        '[AniSkip] ⚠️  No MAL ID or AniList ID available - skipping AniSkip',
+      );
+      debugPrint(
+        '[AniSkip] 💡 Tip: This anime needs to have at least one ID in AniList database',
+      );
+      return;
+    }
+
+    final episodeNumberStr = _extractEpisodeNumber(widget.episode.number);
+    final episodeNumber = int.tryParse(episodeNumberStr);
+
+    if (episodeNumber == null) {
+      debugPrint(
+        '[AniSkip] ⚠️  Could not parse episode number: $episodeNumberStr',
+      );
+      return;
+    }
+
+    final resolvedEpisodeLength =
+        episodeLengthSeconds ??
+        _videoPlayerController?.value.duration.inSeconds;
+
+    if (resolvedEpisodeLength == null || resolvedEpisodeLength <= 0) {
+      debugPrint(
+        '[AniSkip] ⚠️  Episode length unavailable (got: $resolvedEpisodeLength).',
+      );
+      if (_skipTimesRetryCount < _maxSkipTimesRetries) {
+        _skipTimesRetryCount++;
+        debugPrint(
+          '[AniSkip] 🔁 Retrying to load skip times (#$_skipTimesRetryCount)…',
+        );
+        Future.delayed(const Duration(seconds: 1), () {
+          if (!_isActiveEpisode(requestKey)) {
+            return;
+          }
+          if (mounted) {
+            _loadSkipTimes(
+              episodeLengthSeconds:
+                  _videoPlayerController?.value.duration.inSeconds,
+            );
+          }
+        });
+      } else {
+        debugPrint(
+          '[AniSkip] ❌ Gave up retrying skip times due to missing duration.',
+        );
+      }
+      return;
+    }
+
+    _skipTimesRetryCount = 0;
+
+    debugPrint('[AniSkip] 🔍 Fetching skip times for Episode: $episodeNumber');
+    debugPrint('[AniSkip] Episode length (s): $resolvedEpisodeLength');
+    if (malId != null) {
+      debugPrint('[AniSkip] Will try MAL ID: $malId');
+    }
+    if (anilistId != null) {
+      debugPrint('[AniSkip] Will try AniList ID: $anilistId');
+    }
+
+    try {
+      final skipTimes = await AniSkipService.getSkipTimesMultiStrategy(
+        malId: malId,
+        anilistId: anilistId,
+        episodeNumber: episodeNumber,
+        episodeLengthSeconds: resolvedEpisodeLength,
+      );
+
+      if (mounted && _isActiveEpisode(requestKey)) {
+        _skipButtonAutoHideTimer?.cancel();
+        setState(() {
+          _skipTimes = skipTimes;
+          _skipButtonActiveSegment = null;
+          _skipButtonDismissed = false;
+          _showSkipButton = false;
+          _skipButtonLabel = '';
+        });
+
+        if (_videoPlayerController?.value.isInitialized == true) {
+          _checkSkipButtonVisibility();
+        }
+
+        if (_isActiveEpisode(requestKey) && skipTimes.hasSkipTimes) {
+          debugPrint('[AniSkip] ✅ Skip times loaded successfully!');
+          if (skipTimes.op != null) {
+            debugPrint(
+              '[AniSkip] 📺 Opening: ${skipTimes.op!.start.toStringAsFixed(1)}s - ${skipTimes.op!.end.toStringAsFixed(1)}s (${(skipTimes.op!.end - skipTimes.op!.start).toStringAsFixed(1)}s duration)',
+            );
+          }
+          if (skipTimes.ed != null) {
+            debugPrint(
+              '[AniSkip] 🎬 Ending: ${skipTimes.ed!.start.toStringAsFixed(1)}s - ${skipTimes.ed!.end.toStringAsFixed(1)}s (${(skipTimes.ed!.end - skipTimes.ed!.start).toStringAsFixed(1)}s duration)',
+            );
+          }
+          _startPositionTimer();
+        } else {
+          debugPrint('[AniSkip] ℹ️  No skip times found for this episode');
+        }
+      }
+    } catch (e) {
+      debugPrint('[AniSkip] ❌ Error loading skip times: $e');
+    }
+  }
+
+  /// Start timer to check video position and show skip button
+  void _startPositionTimer() {
+    _positionTimer?.cancel();
+    final timerKey = _activeEpisodeKey;
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!_isActiveEpisode(timerKey)) {
+        timer.cancel();
+        return;
+      }
+
+      final controller = _videoPlayerController;
+      if (controller == null) {
+        return;
+      }
+
+      final value = controller.value;
+      if (!value.isInitialized) {
+        return;
+      }
+
+      if (_skipTimes == null || _skipTimes?.hasSkipTimes != true) {
+        return;
+      }
+
+      _checkSkipButtonVisibility();
+    });
+  }
+
+  /// Check if skip button should be visible based on current position
+  void _checkSkipButtonVisibility() {
+    final position = _videoPlayerController?.value.position;
+    if (position == null) return;
+
+    final currentSeconds = position.inMilliseconds / 1000.0;
+
+    if (_skipButtonDismissed &&
+        (_skipTimes?.op?.isInRange(currentSeconds) == false ||
+            _skipButtonActiveSegment == 'ed') &&
+        (_skipTimes?.ed?.isInRange(currentSeconds) == false ||
+            _skipButtonActiveSegment == 'op')) {
+      _skipButtonDismissed = false;
+      _skipButtonActiveSegment = null;
+    }
+    String? activeSegment;
+    String label = '';
+
+    if (_skipTimes?.op != null &&
+        _isWithinSkipWindow(_skipTimes?.op, currentSeconds)) {
+      activeSegment = 'op';
+      label = AppLocalizations.of(context).skipIntro;
+      debugPrint(
+        '[AniSkip] In opening range at ${currentSeconds.toStringAsFixed(1)}s',
+      );
+    } else if (_skipTimes?.ed != null &&
+        _isWithinSkipWindow(_skipTimes?.ed, currentSeconds)) {
+      activeSegment = 'ed';
+      label = AppLocalizations.of(context).skipOutro;
+      debugPrint(
+        '[AniSkip] In ending range at ${currentSeconds.toStringAsFixed(1)}s',
+      );
+    }
+
+    if (_skipButtonActiveSegment != activeSegment) {
+      _skipButtonAutoHideTimer?.cancel();
+      _skipButtonActiveSegment = activeSegment;
+      _skipButtonDismissed = false;
+    }
+
+    if (activeSegment == null) {
+      if (_showSkipButton || _skipButtonLabel.isNotEmpty) {
+        setState(() {
+          _showSkipButton = false;
+          _skipButtonLabel = '';
+        });
+      }
+      return;
+    }
+
+    if (_skipButtonDismissed) {
+      if (_showSkipButton) {
+        setState(() {
+          _showSkipButton = false;
+          _skipButtonLabel = '';
+        });
+      }
+      return;
+    }
+
+    if (!_showSkipButton || label != _skipButtonLabel) {
+      debugPrint(
+        '[AniSkip] Button visibility changed: show=true, label=$label',
+      );
+      setState(() {
+        _showSkipButton = true;
+        _skipButtonLabel = label;
+      });
+      _scheduleSkipButtonAutoHide(activeSegment);
+    }
+  }
+
+  /// Skip to the end of the current intro/outro
+  void _skipIntroOutro() {
+    final position = _videoPlayerController?.value.position;
+    if (position == null) {
+      debugPrint('[AniSkip] ❌ Cannot skip: video position unavailable');
+      return;
+    }
+
+    if (_skipTimes == null) {
+      debugPrint('[AniSkip] ❌ Cannot skip: no skip times loaded');
+      return;
+    }
+
+    final currentSeconds = position.inMilliseconds / 1000.0;
+    Duration? skipToPosition;
+    String skipType = '';
+
+    // If in opening, skip to end of opening
+    if (_isWithinSkipWindow(_skipTimes!.op, currentSeconds)) {
+      final targetSeconds = _skipTimes!.op!.end;
+      skipToPosition = Duration(milliseconds: (targetSeconds * 1000).round());
+      skipType = 'intro';
+      debugPrint(
+        '[AniSkip] ⏭️  Skipping intro: ${currentSeconds.toStringAsFixed(1)}s -> ${targetSeconds.toStringAsFixed(1)}s',
+      );
+    }
+    // If in ending, skip to end of ending
+    else if (_isWithinSkipWindow(_skipTimes!.ed, currentSeconds)) {
+      final targetSeconds = _skipTimes!.ed!.end;
+      skipToPosition = Duration(milliseconds: (targetSeconds * 1000).round());
+      skipType = 'outro';
+      debugPrint(
+        '[AniSkip] ⏭️  Skipping outro: ${currentSeconds.toStringAsFixed(1)}s -> ${targetSeconds.toStringAsFixed(1)}s',
+      );
+    } else {
+      debugPrint(
+        '[AniSkip] ⚠️  Not in skip range (current: ${currentSeconds.toStringAsFixed(1)}s)',
+      );
+      return;
+    }
+
+    // Perform the skip
+    _videoPlayerController?.seekTo(skipToPosition);
+
+    // Hide button after skip
+    _skipButtonAutoHideTimer?.cancel();
+    _skipButtonDismissed = true;
+    setState(() {
+      _showSkipButton = false;
+    });
+
+    debugPrint('[AniSkip] ✅ Successfully skipped $skipType!');
+
+    // Show a brief feedback to user
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            skipType == 'intro' ? 'Intro pulada!' : 'Encerramento pulado!',
+          ),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
+        ),
+      );
+    }
+  }
+
+  bool _isWithinSkipWindow(Skip? skip, double currentSeconds) {
+    if (skip == null) return false;
+    final startBoundary = (skip.start - _skipLeadSeconds).clamp(
+      0,
+      double.infinity,
+    );
+    final endBoundary = skip.end + _skipHoldSeconds;
+    return currentSeconds >= startBoundary && currentSeconds <= endBoundary;
+  }
+
+  void _scheduleSkipButtonAutoHide(String segmentKey) {
+    _skipButtonAutoHideTimer?.cancel();
+    final episodeKey = _activeEpisodeKey;
+    _skipButtonAutoHideTimer = Timer(_skipAutoHideDuration, () {
+      if (!_isActiveEpisode(episodeKey) ||
+          _skipButtonActiveSegment != segmentKey ||
+          !mounted) {
+        return;
+      }
+      setState(() {
+        _showSkipButton = false;
+        _skipButtonLabel = '';
+      });
+      _skipButtonDismissed = true;
+    });
+  }
+
   Future<void> _initializeVideoPlayer() async {
     if (!mounted) return;
 
+    final episodeKey = _buildEpisodeKey(widget);
+    _activeEpisodeKey = episodeKey;
+    _positionTimer?.cancel();
+    _skipButtonAutoHideTimer?.cancel();
+    _skipButtonActiveSegment = null;
+    _skipButtonDismissed = false;
+    _skipTimesRetryCount = 0;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _showWebViewOption = false;
       _bloggerVideoUrl = null;
+      _skipTimes = null;
+      _showSkipButton = false;
+      _skipButtonLabel = '';
     });
 
     try {
       await _cleanupControllers();
+      if (!_isActiveEpisode(episodeKey)) {
+        debugPrint('[VideoPlayer] Initialization aborted (episode changed).');
+        return;
+      }
 
       String videoSrc;
 
@@ -92,6 +501,11 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           episodeNo,
         );
 
+        if (!_isActiveEpisode(episodeKey)) {
+          debugPrint('[VideoPlayer] AllAnime fetch ignored (episode changed).');
+          return;
+        }
+
         if (allAnimeUrl == null || allAnimeUrl.isEmpty) {
           throw Exception('Video URL not found on AllAnime');
         }
@@ -101,6 +515,13 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       } else {
         debugPrint('[VideoPlayer] Getting AnimeFire episode URL');
         videoSrc = await AnimeService.extractVideoURL(widget.episode.url);
+
+        if (!_isActiveEpisode(episodeKey)) {
+          debugPrint(
+            '[VideoPlayer] AnimeFire fetch ignored (episode changed).',
+          );
+          return;
+        }
 
         if (videoSrc.isEmpty) {
           throw Exception('Video URL not found on page');
@@ -126,6 +547,13 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           throw Exception('Video URL could not be extracted from API');
         }
 
+        if (!_isActiveEpisode(episodeKey)) {
+          debugPrint(
+            '[VideoPlayer] Actual video extraction ignored (episode changed).',
+          );
+          return;
+        }
+
         resolvedVideoUrl = actualVideo.url;
         final playbackHeaders = <String, String>{
           HttpHeaders.userAgentHeader:
@@ -147,6 +575,12 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
             forwardHeaders: forwardedHeaders,
           );
           final proxyUri = await _googleVideoProxy!.start();
+
+          if (!_isActiveEpisode(episodeKey)) {
+            debugPrint('[VideoPlayer] Proxy start ignored (episode changed).');
+            return;
+          }
+
           resolvedVideoUrl = proxyUri.toString();
           controllerHeaders = {};
           debugPrint('Using local proxy for Google Video: $resolvedVideoUrl');
@@ -165,6 +599,11 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
 
       _videoPlayerController!.addListener(_videoPlayerListener);
       await _videoPlayerController!.initialize();
+
+      if (!_isActiveEpisode(episodeKey)) {
+        debugPrint('[VideoPlayer] Controller init ignored (episode changed).');
+        return;
+      }
 
       if (!mounted) return;
 
@@ -188,10 +627,21 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       );
 
       if (mounted) {
+        if (!_isActiveEpisode(episodeKey)) {
+          debugPrint(
+            '[VideoPlayer] Skipped final state update (episode changed).',
+          );
+          return;
+        }
         setState(() {
           _isLoading = false;
         });
       }
+
+      final videoDurationSeconds =
+          _videoPlayerController?.value.duration.inSeconds ?? 0;
+      debugPrint('[VideoPlayer] Duration (s): $videoDurationSeconds');
+      await _loadSkipTimes(episodeLengthSeconds: videoDurationSeconds);
     } catch (e) {
       debugPrint('Error initializing video: $e');
       await _googleVideoProxy?.stop();
@@ -257,6 +707,8 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   }
 
   Future<void> _cleanupControllers() async {
+    _positionTimer?.cancel();
+    _skipButtonAutoHideTimer?.cancel();
     _videoPlayerController?.removeListener(_videoPlayerListener);
     await _videoPlayerController?.dispose();
     _chewieController?.dispose();
@@ -371,6 +823,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
 
   @override
   void dispose() {
+    _positionTimer?.cancel();
     _cleanupControllers();
     super.dispose();
   }
@@ -505,27 +958,53 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   Widget _buildLoadedContent() {
     return Column(
       children: [
-        // Video Player
+        // Video Player with Skip Button
         Container(
           margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 20,
-                spreadRadius: 5,
+          child: Stack(
+            children: [
+              // Video Player Container
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: AspectRatio(
+                    aspectRatio: _calculateAspectRatio(),
+                    child: _chewieController != null
+                        ? Chewie(controller: _chewieController!)
+                        : Container(color: Colors.black),
+                  ),
+                ),
+              ),
+              // Skip Button Overlay (outside ClipRRect)
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: !_showSkipButton,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24, right: 16),
+                      child: Align(
+                        alignment: Alignment.bottomRight,
+                        child: SkipButton(
+                          onSkip: _skipIntroOutro,
+                          label: _skipButtonLabel,
+                          show: _showSkipButton,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: AspectRatio(
-              aspectRatio: _calculateAspectRatio(),
-              child: _chewieController != null
-                  ? Chewie(controller: _chewieController!)
-                  : Container(color: Colors.black),
-            ),
           ),
         ),
 
