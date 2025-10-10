@@ -24,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
 
   late AnimationController _fabAnimationController;
-  late AnimationController _headerAnimationController;
 
   bool _showFab = false;
   double _headerOpacity = 1.0;
@@ -55,10 +54,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _headerAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
 
     _scrollController.addListener(_onScroll);
     _loadAllData();
@@ -68,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _fabAnimationController.dispose();
-    _headerAnimationController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -85,10 +79,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _fabAnimationController.reverse();
     }
 
-    // Fade out do header ao rolar
-    setState(() {
-      _headerOpacity = (1 - (offset / 400)).clamp(0.0, 1.0);
-    });
+    // Header transparente no topo, preto sólido ao rolar (estilo Netflix)
+    final newOpacity = offset > 0 ? 1.0 : 0.0;
+    if ((newOpacity - _headerOpacity).abs() > 0.01) {
+      setState(() {
+        _headerOpacity = newOpacity;
+      });
+    }
   }
 
   void _startBannerRotation() {
@@ -379,104 +376,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.transparent,
+      backgroundColor: _headerOpacity > 0
+          ? AppColors.background
+          : Colors.transparent,
       elevation: 0,
-      flexibleSpace: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.background.withValues(alpha: 0.95),
-                  AppColors.background.withValues(alpha: 0.7),
-                ],
-              ),
-            ),
-          ),
+      toolbarHeight: 60,
+      title: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(10),
         ),
-      ),
-      title: Opacity(
-        opacity: _headerOpacity,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.play_circle_filled,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            ShaderMask(
-              shaderCallback: (bounds) => LinearGradient(
-                colors: [AppColors.primary, AppColors.secondary],
-              ).createShader(bounds),
-              child: const Text(
-                'GoAnime',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
+        child: const Icon(
+          Icons.play_circle_filled,
+          color: Colors.white,
+          size: 24,
         ),
       ),
       actions: [
         IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.search, color: Colors.white),
-          ),
+          icon: const Icon(Icons.search, color: Colors.white, size: 26),
           onPressed: () {
             Navigator.push(
               context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    const SearchScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      const begin = Offset(0.0, 1.0);
-                      const end = Offset.zero;
-                      const curve = Curves.easeInOut;
-                      var tween = Tween(
-                        begin: begin,
-                        end: end,
-                      ).chain(CurveTween(curve: curve));
-                      var offsetAnimation = animation.drive(tween);
-                      return SlideTransition(
-                        position: offsetAnimation,
-                        child: child,
-                      );
-                    },
-              ),
+              MaterialPageRoute(builder: (context) => const SearchScreen()),
             );
           },
         ),
         IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.settings, color: Colors.white),
+          icon: const Icon(
+            Icons.settings_outlined,
+            color: Colors.white,
+            size: 26,
           ),
           onPressed: () {
             Navigator.push(
@@ -485,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }
