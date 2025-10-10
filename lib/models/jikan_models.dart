@@ -39,12 +39,6 @@ class JikanAnime {
     final webpNormal = json['images']?['webp']?['image_url'];
     final jpgNormal = json['images']?['jpg']?['image_url'];
 
-    // Debug: mostrar qual URL está sendo usada
-    final selectedUrl = webpLarge ?? jpgLarge ?? webpNormal ?? jpgNormal;
-    if (selectedUrl != null && selectedUrl.isNotEmpty) {
-      print('[IMAGE DEBUG] ${json['title']}: $selectedUrl');
-    }
-
     return JikanAnime(
       malId: json['mal_id'] ?? 0,
       title: json['title'] ?? 'Unknown',
