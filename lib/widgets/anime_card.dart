@@ -36,17 +36,26 @@ class AnimeCard extends StatelessWidget {
               child: Stack(
                 children: [
                   CachedNetworkImage(
-                    imageUrl: anime.imageUrl,
+                    imageUrl: anime.largImageUrl ?? anime.imageUrl,
                     width: width,
                     height: height,
                     fit: BoxFit.cover,
+                    filterQuality:
+                        FilterQuality.high, // Filtro de alta qualidade
+                    memCacheWidth: (width * 3)
+                        .toInt(), // Cache 3x para melhor qualidade
+                    memCacheHeight: (height * 3).toInt(),
+                    maxWidthDiskCache: (width * 3).toInt(),
+                    maxHeightDiskCache: (height * 3).toInt(),
                     placeholder: (context, url) => Container(
                       width: width,
                       height: height,
                       color: Colors.grey[900],
                       child: const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.orange,
+                          ),
                         ),
                       ),
                     ),
@@ -120,11 +129,7 @@ class AnimeCardLarge extends StatelessWidget {
   final JikanAnime anime;
   final VoidCallback? onTap;
 
-  const AnimeCardLarge({
-    super.key,
-    required this.anime,
-    this.onTap,
-  });
+  const AnimeCardLarge({super.key, required this.anime, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -145,10 +150,15 @@ class AnimeCardLarge extends StatelessWidget {
                 bottomLeft: Radius.circular(12),
               ),
               child: CachedNetworkImage(
-                imageUrl: anime.imageUrl,
+                imageUrl: anime.largImageUrl ?? anime.imageUrl,
                 width: 100,
                 height: 140,
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                memCacheWidth: 300, // Cache 3x para melhor qualidade
+                memCacheHeight: 420,
+                maxWidthDiskCache: 300,
+                maxHeightDiskCache: 420,
                 placeholder: (context, url) => Container(
                   width: 100,
                   height: 140,
@@ -190,20 +200,13 @@ class AnimeCardLarge extends StatelessWidget {
                         anime.synopsis!,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
                       ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         if (anime.score != null) ...[
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 16,
-                          ),
+                          const Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
                             anime.score!.toStringAsFixed(1),
@@ -216,11 +219,7 @@ class AnimeCardLarge extends StatelessWidget {
                           const SizedBox(width: 12),
                         ],
                         if (anime.episodes != null) ...[
-                          Icon(
-                            Icons.tv,
-                            color: Colors.grey[400],
-                            size: 16,
-                          ),
+                          Icon(Icons.tv, color: Colors.grey[400], size: 16),
                           const SizedBox(width: 4),
                           Text(
                             '${anime.episodes} eps',

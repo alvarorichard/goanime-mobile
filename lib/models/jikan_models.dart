@@ -33,23 +33,35 @@ class JikanAnime {
   });
 
   factory JikanAnime.fromJson(Map<String, dynamic> json) {
+    // Priorizar WebP para melhor qualidade e compressão
+    final webpLarge = json['images']?['webp']?['large_image_url'];
+    final jpgLarge = json['images']?['jpg']?['large_image_url'];
+    final webpNormal = json['images']?['webp']?['image_url'];
+    final jpgNormal = json['images']?['jpg']?['image_url'];
+
+    // Debug: mostrar qual URL está sendo usada
+    final selectedUrl = webpLarge ?? jpgLarge ?? webpNormal ?? jpgNormal;
+    if (selectedUrl != null && selectedUrl.isNotEmpty) {
+      print('[IMAGE DEBUG] ${json['title']}: $selectedUrl');
+    }
+
     return JikanAnime(
       malId: json['mal_id'] ?? 0,
       title: json['title'] ?? 'Unknown',
       titleEnglish: json['title_english'],
       titleJapanese: json['title_japanese'],
-      imageUrl: json['images']?['jpg']?['image_url'] ?? 
-                json['images']?['webp']?['image_url'] ?? '',
-      largImageUrl: json['images']?['jpg']?['large_image_url'] ?? 
-                    json['images']?['webp']?['large_image_url'],
+      imageUrl: webpNormal ?? jpgNormal ?? '',
+      largImageUrl: webpLarge ?? jpgLarge ?? webpNormal ?? jpgNormal,
       synopsis: json['synopsis'],
       score: json['score']?.toDouble(),
       episodes: json['episodes'],
       status: json['status'],
       rating: json['rating'],
-      genres: (json['genres'] as List<dynamic>?)
-          ?.map((g) => JikanGenre.fromJson(g))
-          .toList() ?? [],
+      genres:
+          (json['genres'] as List<dynamic>?)
+              ?.map((g) => JikanGenre.fromJson(g))
+              .toList() ??
+          [],
       year: json['year'],
       season: json['season'],
     );
@@ -62,10 +74,7 @@ class JikanAnime {
       'title_english': titleEnglish,
       'title_japanese': titleJapanese,
       'images': {
-        'jpg': {
-          'image_url': imageUrl,
-          'large_image_url': largImageUrl,
-        }
+        'jpg': {'image_url': imageUrl, 'large_image_url': largImageUrl},
       },
       'synopsis': synopsis,
       'score': score,
@@ -84,11 +93,7 @@ class JikanGenre {
   final String name;
   final String type;
 
-  JikanGenre({
-    required this.malId,
-    required this.name,
-    required this.type,
-  });
+  JikanGenre({required this.malId, required this.name, required this.type});
 
   factory JikanGenre.fromJson(Map<String, dynamic> json) {
     return JikanGenre(
@@ -99,11 +104,7 @@ class JikanGenre {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'mal_id': malId,
-      'name': name,
-      'type': type,
-    };
+    return {'mal_id': malId, 'name': name, 'type': type};
   }
 }
 
@@ -111,20 +112,19 @@ class JikanResponse<T> {
   final List<T> data;
   final JikanPagination? pagination;
 
-  JikanResponse({
-    required this.data,
-    this.pagination,
-  });
+  JikanResponse({required this.data, this.pagination});
 
   factory JikanResponse.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) fromJsonT,
   ) {
     return JikanResponse(
-      data: (json['data'] as List<dynamic>?)
-          ?.map((item) => fromJsonT(item as Map<String, dynamic>))
-          .toList() ?? [],
-      pagination: json['pagination'] != null 
+      data:
+          (json['data'] as List<dynamic>?)
+              ?.map((item) => fromJsonT(item as Map<String, dynamic>))
+              .toList() ??
+          [],
+      pagination: json['pagination'] != null
           ? JikanPagination.fromJson(json['pagination'])
           : null,
     );

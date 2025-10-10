@@ -449,6 +449,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: CachedNetworkImage(
                 imageUrl: anime.largImageUrl ?? anime.imageUrl,
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                memCacheWidth:
+                    1600, // Cache em altíssima resolução para o banner
+                memCacheHeight: 2000,
+                maxWidthDiskCache: 1600,
+                maxHeightDiskCache: 2000,
                 placeholder: (context, url) => Container(
                   color: AppColors.surface,
                   child: const Center(
@@ -873,10 +879,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: CachedNetworkImage(
-                        imageUrl: anime.imageUrl,
+                        imageUrl: anime.largImageUrl ?? anime.imageUrl,
                         width: 160,
                         height: 220,
                         fit: BoxFit.cover,
+                        filterQuality: FilterQuality.high,
+                        memCacheWidth: 480, // Cache 3x para máxima qualidade
+                        memCacheHeight: 660,
+                        maxWidthDiskCache: 480,
+                        maxHeightDiskCache: 660,
                         placeholder: (context, url) => Container(
                           color: AppColors.surface,
                           child: const Center(
