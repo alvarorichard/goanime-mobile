@@ -43,50 +43,67 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: IndexedStack(index: _currentIndex, children: screens),
-        bottomNavigationBar: BottomNavyBar(
-          backgroundColor: AppColors.surface,
-          selectedIndex: _currentIndex,
-          showElevation: true,
-          onItemSelected: (index) {
-            setState(() => _currentIndex = index);
-          },
-          items: [
-            BottomNavyBarItem(
-              icon: const Icon(Ionicons.home_outline),
-              title: const Text('Home'),
-              activeColor: AppColors.primary,
-              inactiveColor: Colors.grey,
-              textAlign: TextAlign.center,
+        bottomNavigationBar: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BottomNavyBar(
+              backgroundColor: Colors.transparent,
+              selectedIndex: _currentIndex,
+              showElevation: false,
+              onItemSelected: (index) {
+                setState(() => _currentIndex = index);
+              },
+              items: [
+                BottomNavyBarItem(
+                  icon: const Icon(Ionicons.home_outline),
+                  title: const Text('Home'),
+                  activeColor: AppColors.primary,
+                  inactiveColor: Colors.grey,
+                  textAlign: TextAlign.center,
+                ),
+                BottomNavyBarItem(
+                  icon: const Icon(Ionicons.search_outline),
+                  title: const Text('Pesquisa'),
+                  activeColor: AppColors.primary,
+                  inactiveColor: Colors.grey,
+                  textAlign: TextAlign.center,
+                ),
+                BottomNavyBarItem(
+                  icon: const Icon(Ionicons.bookmark_outline),
+                  title: const Text('Watchlist'),
+                  activeColor: AppColors.primary,
+                  inactiveColor: Colors.grey,
+                  textAlign: TextAlign.center,
+                ),
+                BottomNavyBarItem(
+                  icon: const Icon(Ionicons.download_outline),
+                  title: const Text('Downloads'),
+                  activeColor: AppColors.primary,
+                  inactiveColor: Colors.grey,
+                  textAlign: TextAlign.center,
+                ),
+                BottomNavyBarItem(
+                  icon: const Icon(Ionicons.settings_outline),
+                  title: const Text('Settings'),
+                  activeColor: AppColors.primary,
+                  inactiveColor: Colors.grey,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            BottomNavyBarItem(
-              icon: const Icon(Ionicons.search_outline),
-              title: const Text('Pesquisa'),
-              activeColor: AppColors.primary,
-              inactiveColor: Colors.grey,
-              textAlign: TextAlign.center,
-            ),
-            BottomNavyBarItem(
-              icon: const Icon(Ionicons.bookmark_outline),
-              title: const Text('Watchlist'),
-              activeColor: AppColors.primary,
-              inactiveColor: Colors.grey,
-              textAlign: TextAlign.center,
-            ),
-            BottomNavyBarItem(
-              icon: const Icon(Ionicons.download_outline),
-              title: const Text('Downloads'),
-              activeColor: AppColors.primary,
-              inactiveColor: Colors.grey,
-              textAlign: TextAlign.center,
-            ),
-            BottomNavyBarItem(
-              icon: const Icon(Ionicons.settings_outline),
-              title: const Text('Settings'),
-              activeColor: AppColors.primary,
-              inactiveColor: Colors.grey,
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );
