@@ -74,9 +74,10 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   static const int _maxSkipTimesRetries = 3;
   static const double _skipLeadSeconds = 3.0;
   static const double _skipHoldSeconds = 2.0;
-  static const Duration _skipAutoHideDuration = Duration(seconds: 4);
+  static const Duration _skipAutoHideDuration = Duration(seconds: 15);
   String? _skipButtonActiveSegment;
   bool _skipButtonDismissed = false;
+  DateTime? _lastAutoHideTime;
   String? _activeEpisodeKey;
 
   String _buildEpisodeKey(ModernVideoPlayerScreen target) {
@@ -132,8 +133,20 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
 
     if (previousKey != nextKey) {
       debugPrint(
-        '[VideoPlayer] Episode context changed. Reinitializing player…',
+        '[VideoPlayer] 🔄 Episode context changed: $previousKey → $nextKey',
       );
+      debugPrint('[VideoPlayer] Reinitializing player for new episode...');
+
+      // Force a clean reinitialization
+      _positionTimer?.cancel();
+      _skipButtonAutoHideTimer?.cancel();
+      _skipButtonActiveSegment = null;
+      _skipButtonDismissed = false;
+      _lastAutoHideTime = null;
+      _skipTimes = null;
+      _showSkipButton = false;
+      _skipButtonLabel = '';
+
       _initializeVideoPlayer();
     }
   }
@@ -236,29 +249,54 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           _skipTimes = skipTimes;
           _skipButtonActiveSegment = null;
           _skipButtonDismissed = false;
+          _lastAutoHideTime = null;
           _showSkipButton = false;
           _skipButtonLabel = '';
         });
 
-        if (_videoPlayerController?.value.isInitialized == true) {
-          _checkSkipButtonVisibility();
-        }
+        if (_isActiveEpisode(requestKey)) {
+          if (skipTimes.hasSkipTimes) {
+            debugPrint('[AniSkip] ✅ Skip times loaded successfully!');
+            if (skipTimes.op != null) {
+              final opShowStart = (skipTimes.op!.start - _skipLeadSeconds)
+                  .clamp(0, double.infinity);
+              final opShowEnd = skipTimes.op!.end + _skipHoldSeconds;
+              debugPrint(
+                '[AniSkip] 📺 Opening: ${skipTimes.op!.start.toStringAsFixed(1)}s - ${skipTimes.op!.end.toStringAsFixed(1)}s',
+              );
+              debugPrint(
+                '[AniSkip] 📺 Button will show: ${opShowStart.toStringAsFixed(1)}s - ${opShowEnd.toStringAsFixed(1)}s (${(opShowEnd - opShowStart).toStringAsFixed(1)}s window)',
+              );
+            }
+            if (skipTimes.ed != null) {
+              final edShowStart = (skipTimes.ed!.start - _skipLeadSeconds)
+                  .clamp(0, double.infinity);
+              final edShowEnd = skipTimes.ed!.end + _skipHoldSeconds;
+              debugPrint(
+                '[AniSkip] 🎬 Ending: ${skipTimes.ed!.start.toStringAsFixed(1)}s - ${skipTimes.ed!.end.toStringAsFixed(1)}s',
+              );
+              debugPrint(
+                '[AniSkip] 🎬 Button will show: ${edShowStart.toStringAsFixed(1)}s - ${edShowEnd.toStringAsFixed(1)}s (${(edShowEnd - edShowStart).toStringAsFixed(1)}s window)',
+              );
+            }
+            // Always start timer when we have skip times
+            _startPositionTimer();
 
-        if (_isActiveEpisode(requestKey) && skipTimes.hasSkipTimes) {
-          debugPrint('[AniSkip] ✅ Skip times loaded successfully!');
-          if (skipTimes.op != null) {
-            debugPrint(
-              '[AniSkip] 📺 Opening: ${skipTimes.op!.start.toStringAsFixed(1)}s - ${skipTimes.op!.end.toStringAsFixed(1)}s (${(skipTimes.op!.end - skipTimes.op!.start).toStringAsFixed(1)}s duration)',
-            );
+            // Immediately check if we should show the button
+            if (_videoPlayerController?.value.isInitialized == true) {
+              final currentPos = _videoPlayerController?.value.position;
+              if (currentPos != null) {
+                debugPrint(
+                  '[AniSkip] 🔍 Initial position check at ${currentPos.inSeconds}s',
+                );
+              }
+              _checkSkipButtonVisibility();
+            }
+          } else {
+            debugPrint('[AniSkip] ℹ️  No skip times found for this episode');
+            // Still start timer in case skip times are added later
+            _startPositionTimer();
           }
-          if (skipTimes.ed != null) {
-            debugPrint(
-              '[AniSkip] 🎬 Ending: ${skipTimes.ed!.start.toStringAsFixed(1)}s - ${skipTimes.ed!.end.toStringAsFixed(1)}s (${(skipTimes.ed!.end - skipTimes.ed!.start).toStringAsFixed(1)}s duration)',
-            );
-          }
-          _startPositionTimer();
-        } else {
-          debugPrint('[AniSkip] ℹ️  No skip times found for this episode');
         }
       }
     } catch (e) {
@@ -270,24 +308,51 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   void _startPositionTimer() {
     _positionTimer?.cancel();
     final timerKey = _activeEpisodeKey;
+    debugPrint('[AniSkip] ▶️  Starting position timer for episode: $timerKey');
+
+    int tickCount = 0;
     _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      tickCount++;
+
       if (!_isActiveEpisode(timerKey)) {
+        debugPrint(
+          '[AniSkip] ⏹️  Timer cancelled: episode changed (after $tickCount ticks)',
+        );
         timer.cancel();
         return;
       }
 
       final controller = _videoPlayerController;
       if (controller == null) {
+        if (tickCount % 10 == 0) {
+          debugPrint('[AniSkip] ⚠️  Controller is null (tick $tickCount)');
+        }
         return;
       }
 
       final value = controller.value;
       if (!value.isInitialized) {
+        if (tickCount % 10 == 0) {
+          debugPrint(
+            '[AniSkip] ⚠️  Controller not initialized (tick $tickCount)',
+          );
+        }
         return;
       }
 
       if (_skipTimes == null || _skipTimes?.hasSkipTimes != true) {
+        if (tickCount % 20 == 0) {
+          debugPrint('[AniSkip] ⚠️  No skip times available (tick $tickCount)');
+        }
         return;
+      }
+
+      // Log every 10 seconds to confirm timer is running
+      if (tickCount % 20 == 0) {
+        final pos = value.position.inSeconds;
+        debugPrint(
+          '[AniSkip] ⏱️  Timer active (tick $tickCount, position: ${pos}s)',
+        );
       }
 
       _checkSkipButtonVisibility();
@@ -296,55 +361,15 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
 
   /// Check if skip button should be visible based on current position
   void _checkSkipButtonVisibility() {
-    final position = _videoPlayerController?.value.position;
-    if (position == null) return;
-
-    final currentSeconds = position.inMilliseconds / 1000.0;
-
-    if (_skipButtonDismissed &&
-        (_skipTimes?.op?.isInRange(currentSeconds) == false ||
-            _skipButtonActiveSegment == 'ed') &&
-        (_skipTimes?.ed?.isInRange(currentSeconds) == false ||
-            _skipButtonActiveSegment == 'op')) {
-      _skipButtonDismissed = false;
-      _skipButtonActiveSegment = null;
-    }
-    String? activeSegment;
-    String label = '';
-
-    if (_skipTimes?.op != null &&
-        _isWithinSkipWindow(_skipTimes?.op, currentSeconds)) {
-      activeSegment = 'op';
-      label = AppLocalizations.of(context).skipIntro;
-      debugPrint(
-        '[AniSkip] In opening range at ${currentSeconds.toStringAsFixed(1)}s',
-      );
-    } else if (_skipTimes?.ed != null &&
-        _isWithinSkipWindow(_skipTimes?.ed, currentSeconds)) {
-      activeSegment = 'ed';
-      label = AppLocalizations.of(context).skipOutro;
-      debugPrint(
-        '[AniSkip] In ending range at ${currentSeconds.toStringAsFixed(1)}s',
-      );
-    }
-
-    if (_skipButtonActiveSegment != activeSegment) {
-      _skipButtonAutoHideTimer?.cancel();
-      _skipButtonActiveSegment = activeSegment;
-      _skipButtonDismissed = false;
-    }
-
-    if (activeSegment == null) {
-      if (_showSkipButton || _skipButtonLabel.isNotEmpty) {
-        setState(() {
-          _showSkipButton = false;
-          _skipButtonLabel = '';
-        });
-      }
+    final controller = _videoPlayerController;
+    if (controller == null || !controller.value.isInitialized) {
       return;
     }
 
-    if (_skipButtonDismissed) {
+    final position = controller.value.position;
+
+    // Don't show button when video is paused (prevents infinite loop in landscape)
+    if (!controller.value.isPlaying) {
       if (_showSkipButton) {
         setState(() {
           _showSkipButton = false;
@@ -354,9 +379,108 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       return;
     }
 
+    final currentSeconds = position.inMilliseconds / 1000.0;
+
+    // Determine which segment (if any) we're currently in
+    String? activeSegment;
+    String label = '';
+
+    final inOpWindow =
+        _skipTimes?.op != null &&
+        _isWithinSkipWindow(_skipTimes?.op, currentSeconds);
+    final inEdWindow =
+        _skipTimes?.ed != null &&
+        _isWithinSkipWindow(_skipTimes?.ed, currentSeconds);
+
+    // Debug: Log window checks periodically
+    if (currentSeconds.toInt() % 10 == 0 && currentSeconds.toInt() > 0) {
+      debugPrint(
+        '[AniSkip] 🔍 Position: ${currentSeconds.toStringAsFixed(1)}s | Op window: $inOpWindow | Ed window: $inEdWindow | Dismissed: $_skipButtonDismissed | Showing: $_showSkipButton',
+      );
+    }
+
+    if (inOpWindow) {
+      activeSegment = 'op';
+      label = AppLocalizations.of(context).skipIntro;
+    } else if (inEdWindow) {
+      activeSegment = 'ed';
+      label = AppLocalizations.of(context).skipOutro;
+    }
+
+    // Reset dismissal when we exit ALL skip windows
+    if (_skipButtonDismissed && !inOpWindow && !inEdWindow) {
+      debugPrint(
+        '[AniSkip] 🔄 Resetting dismissal flag (exited all skip windows at ${currentSeconds.toStringAsFixed(1)}s)',
+      );
+      _skipButtonDismissed = false;
+      _skipButtonActiveSegment = null;
+    }
+
+    // When entering a new segment, reset the dismissal and timer
+    if (_skipButtonActiveSegment != activeSegment) {
+      _skipButtonAutoHideTimer?.cancel();
+      final previousSegment = _skipButtonActiveSegment;
+      _skipButtonActiveSegment = activeSegment;
+
+      if (activeSegment != null) {
+        debugPrint(
+          '[AniSkip] 🎯 Segment transition: $previousSegment → $activeSegment at ${currentSeconds.toStringAsFixed(1)}s (dismissed: $_skipButtonDismissed)',
+        );
+        // Reset dismissal and auto-hide time when entering a new segment
+        _skipButtonDismissed = false;
+        _lastAutoHideTime = null;
+      }
+    }
+
+    // Handle visibility based on current state
+    if (activeSegment == null) {
+      // Not in any skip window
+      if (_showSkipButton || _skipButtonLabel.isNotEmpty) {
+        setState(() {
+          _showSkipButton = false;
+          _skipButtonLabel = '';
+        });
+      }
+      return;
+    }
+
+    // In a skip window
+    if (_skipButtonDismissed) {
+      // Button was manually dismissed or skipped for this segment
+      if (_showSkipButton) {
+        debugPrint(
+          '[AniSkip] 🙈 Hiding button (dismissed) at ${currentSeconds.toStringAsFixed(1)}s',
+        );
+        setState(() {
+          _showSkipButton = false;
+          _skipButtonLabel = '';
+        });
+      }
+      return;
+    }
+
+    // Check if we're in cooldown period after auto-hide (30 seconds)
+    if (_lastAutoHideTime != null) {
+      final timeSinceAutoHide = DateTime.now().difference(_lastAutoHideTime!);
+      if (timeSinceAutoHide.inSeconds < 30) {
+        // Still in cooldown, don't show button yet
+        if (_showSkipButton) {
+          setState(() {
+            _showSkipButton = false;
+            _skipButtonLabel = '';
+          });
+        }
+        return;
+      } else {
+        // Cooldown expired, clear the timestamp
+        _lastAutoHideTime = null;
+      }
+    }
+
+    // Show the button
     if (!_showSkipButton || label != _skipButtonLabel) {
       debugPrint(
-        '[AniSkip] Button visibility changed: show=true, label=$label',
+        '[AniSkip] ✨ Showing skip button: $label at ${currentSeconds.toStringAsFixed(1)}s (segment: $activeSegment, dismissed: $_skipButtonDismissed)',
       );
       setState(() {
         _showSkipButton = true;
@@ -441,23 +565,46 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       double.infinity,
     );
     final endBoundary = skip.end + _skipHoldSeconds;
-    return currentSeconds >= startBoundary && currentSeconds <= endBoundary;
+    final isInWindow =
+        currentSeconds >= startBoundary && currentSeconds <= endBoundary;
+
+    // Debug: Log when entering window
+    if (isInWindow &&
+        currentSeconds >= startBoundary &&
+        currentSeconds < startBoundary + 1) {
+      debugPrint(
+        '[AniSkip] 🚪 Entering skip window: ${currentSeconds.toStringAsFixed(1)}s (boundary: ${startBoundary.toStringAsFixed(1)}s - ${endBoundary.toStringAsFixed(1)}s)',
+      );
+    }
+
+    return isInWindow;
   }
 
   void _scheduleSkipButtonAutoHide(String segmentKey) {
     _skipButtonAutoHideTimer?.cancel();
     final episodeKey = _activeEpisodeKey;
+    debugPrint(
+      '[AniSkip] ⏲️  Scheduled auto-hide for segment: $segmentKey in ${_skipAutoHideDuration.inSeconds}s',
+    );
     _skipButtonAutoHideTimer = Timer(_skipAutoHideDuration, () {
       if (!_isActiveEpisode(episodeKey) ||
           _skipButtonActiveSegment != segmentKey ||
           !mounted) {
+        debugPrint(
+          '[AniSkip] ⏲️  Auto-hide cancelled (episode/segment changed)',
+        );
         return;
       }
+      debugPrint(
+        '[AniSkip] ⏲️  Auto-hiding button for segment: $segmentKey (will reappear after 30s cooldown)',
+      );
+      _lastAutoHideTime = DateTime.now();
       setState(() {
         _showSkipButton = false;
         _skipButtonLabel = '';
       });
-      _skipButtonDismissed = true;
+      // Don't set _skipButtonDismissed = true here!
+      // Button can reappear after cooldown period
     });
   }
 
@@ -465,6 +612,8 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
     if (!mounted) return;
 
     final episodeKey = _buildEpisodeKey(widget);
+    debugPrint('[VideoPlayer] 🎬 Initializing player for episode: $episodeKey');
+
     _activeEpisodeKey = episodeKey;
     _positionTimer?.cancel();
     _skipButtonAutoHideTimer?.cancel();
@@ -893,13 +1042,14 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   Widget _buildLoadingState() {
     return Container(
       height: MediaQuery.of(context).size.height - 200,
-      padding: const EdgeInsets.all(48),
+      padding: const EdgeInsets.all(24),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: AppColors.getPrimaryGradient(),
                 shape: BoxShape.circle,
@@ -912,30 +1062,32 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
                 ],
               ),
               child: const SizedBox(
-                width: 40,
-                height: 40,
+                width: 32,
+                height: 32,
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 3,
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
               AppLocalizations.of(context).loadingStream,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               AppLocalizations.of(context).preparingServer,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 14,
+                fontSize: 12,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
