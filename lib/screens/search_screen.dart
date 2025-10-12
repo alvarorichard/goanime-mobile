@@ -365,7 +365,7 @@ class _SearchScreenState extends State<SearchScreen>
                           ),
                           prefixIcon: const Icon(
                             Icons.search,
-                            color: Colors.orange,
+                            color: AppColors.primary,
                           ),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -411,9 +411,9 @@ class _SearchScreenState extends State<SearchScreen>
                     child: ActionChip(
                       label: Text(suggestion),
                       labelStyle: const TextStyle(color: Colors.white),
-                      backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.2),
                       side: BorderSide(
-                        color: Colors.orange.withValues(alpha: 0.5),
+                        color: AppColors.primary.withValues(alpha: 0.5),
                       ),
                       onPressed: () => _selectSearchQuery(suggestion),
                     ),
@@ -451,7 +451,7 @@ class _SearchScreenState extends State<SearchScreen>
                       : FontWeight.normal,
                 ),
                 selected: _selectedGenre == null,
-                selectedColor: Colors.orange,
+                selectedColor: AppColors.primary,
                 backgroundColor: Colors.white.withValues(alpha: 0.1),
                 onSelected: (_) => _selectGenre(null),
               ),
@@ -475,7 +475,7 @@ class _SearchScreenState extends State<SearchScreen>
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               selected: isSelected,
-              selectedColor: Colors.orange,
+              selectedColor: AppColors.primary,
               backgroundColor: Colors.white.withValues(alpha: 0.1),
               onSelected: (_) => _selectGenre(genre['id'] as int),
             ),
@@ -516,7 +516,7 @@ class _SearchScreenState extends State<SearchScreen>
                 onPressed: _clearHistory,
                 child: const Text(
                   'Clear',
-                  style: TextStyle(color: Colors.orange),
+                  style: TextStyle(color: AppColors.primary),
                 ),
               ),
             ],
@@ -524,7 +524,7 @@ class _SearchScreenState extends State<SearchScreen>
           const SizedBox(height: 12),
           ..._searchHistory.take(8).map((query) {
             return ListTile(
-              leading: const Icon(Icons.history, color: Colors.orange),
+              leading: const Icon(Icons.history, color: AppColors.primary),
               title: Text(query, style: const TextStyle(color: Colors.white)),
               trailing: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white54),
@@ -540,7 +540,9 @@ class _SearchScreenState extends State<SearchScreen>
         _buildSectionHeader('Trending Now', Icons.local_fire_department),
         const SizedBox(height: 16),
         if (_isLoadingTrending)
-          const Center(child: CircularProgressIndicator(color: Colors.orange))
+          const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          )
         else
           GridView.builder(
             shrinkWrap: true,
@@ -563,7 +565,7 @@ class _SearchScreenState extends State<SearchScreen>
   Widget _buildSearchResults() {
     if (_isSearching) {
       return const Center(
-        child: CircularProgressIndicator(color: Colors.orange),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -612,8 +614,8 @@ class _SearchScreenState extends State<SearchScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+            gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.primaryDark],
             ),
             borderRadius: BorderRadius.circular(8),
           ),
