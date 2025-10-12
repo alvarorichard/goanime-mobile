@@ -267,7 +267,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     ),
                     trailing: const Icon(
                       Icons.arrow_forward_ios,
-                      color: Colors.orange,
+                      color: AppColors.primary,
                     ),
                     onTap: () => Navigator.pop(context, show),
                   );
@@ -281,7 +281,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                     ),
                     trailing: const Icon(
                       Icons.arrow_forward_ios,
-                      color: Colors.orange,
+                      color: AppColors.primary,
                     ),
                     onTap: () => Navigator.pop(context, anime),
                   );
@@ -295,7 +295,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
               onPressed: () => Navigator.pop(context),
               child: Text(
                 l10n.locale.languageCode == 'pt' ? 'Cancelar' : 'Cancel',
-                style: const TextStyle(color: Colors.orange),
+                style: const TextStyle(color: AppColors.primary),
               ),
             ),
           ],
@@ -458,14 +458,14 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen>
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.info_outline,
-                          color: Colors.orange,
+                          color: AppColors.primary,
                           size: 20,
                         ),
                         const SizedBox(width: 12),
