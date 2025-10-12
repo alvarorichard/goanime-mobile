@@ -46,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Índice do banner atual
   int _currentBannerIndex = 0;
+  late PageController _bannerPageController;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _bannerPageController = PageController();
 
     _scrollController.addListener(_onScroll);
     _loadAllData();
@@ -64,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _fabAnimationController.dispose();
     _scrollController.dispose();
+    _bannerPageController.dispose();
     super.dispose();
   }
 
@@ -90,11 +93,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _startBannerRotation() {
     Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && _seasonAnimes.isNotEmpty) {
-        setState(() {
-          _currentBannerIndex =
-              (_currentBannerIndex + 1) % _seasonAnimes.length.clamp(0, 5);
-        });
+      if (mounted &&
+          _seasonAnimes.isNotEmpty &&
+          _bannerPageController.hasClients) {
+        final nextIndex =
+            (_currentBannerIndex + 1) % _seasonAnimes.length.clamp(0, 5);
+        _bannerPageController.animateToPage(
+          nextIndex,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
         _startBannerRotation();
       }
     });
@@ -260,9 +268,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           slivers: [
             // Banner Hero com Parallax
             if (_seasonAnimes.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _buildHeroBanner(_seasonAnimes[_currentBannerIndex]),
-              ),
+              SliverToBoxAdapter(child: _buildHeroBannerCarousel()),
 
             // Conteúdo principal
             SliverToBoxAdapter(
@@ -421,220 +427,152 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHeroBanner(JikanAnime anime) {
-    final l10n = AppLocalizations.of(context);
+  Widget _buildHeroBannerCarousel() {
+    final bannerAnimes = _seasonAnimes.take(5).toList();
+
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 1200), // Slower entrance
-      curve: Curves.easeOutQuart, // Smoother, more elegant curve
+      duration: const Duration(milliseconds: 1200),
+      curve: Curves.easeOutQuart,
       builder: (context, value, child) {
         return Transform.translate(
-          offset: Offset(0, -60 * (1 - value)), // More dramatic slide from top
+          offset: Offset(0, -60 * (1 - value)),
           child: Opacity(
             opacity: value,
-            child: Transform.scale(
-              scale: 0.90 + (0.10 * value), // More noticeable scale
-              child: child,
-            ),
+            child: Transform.scale(scale: 0.90 + (0.10 * value), child: child),
           ),
         );
       },
       child: Container(
-        height: 500,
-        margin: const EdgeInsets.only(top: 0),
+        height: 200,
+        margin: const EdgeInsets.only(top: 88),
         child: Stack(
           children: [
-            // Imagem de fundo com parallax
+            // PageView with rounded corners
             Positioned.fill(
-              child: CachedNetworkImage(
-                imageUrl: anime.largImageUrl ?? anime.imageUrl,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.high,
-                memCacheWidth:
-                    1600, // Cache em altíssima resolução para o banner
-                memCacheHeight: 2000,
-                maxWidthDiskCache: 1600,
-                maxHeightDiskCache: 2000,
-                placeholder: (context, url) => Container(
-                  color: AppColors.surface,
-                  child: const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.surface,
-                  child: const Icon(Icons.error, color: Colors.white54),
-                ),
-              ),
-            ),
-
-            // Gradient overlay com múltiplas camadas (Netflix-style)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      AppColors.background.withValues(alpha: 0.3),
-                      AppColors.background.withValues(alpha: 0.85),
-                      AppColors.background,
-                    ],
-                    stops: const [0.0, 0.4, 0.75, 1.0],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: PageView.builder(
+                    controller: _bannerPageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentBannerIndex = index;
+                      });
+                    },
+                    itemCount: bannerAnimes.length,
+                    itemBuilder: (context, index) {
+                      final anime = bannerAnimes[index];
+                      return _buildBannerItem(anime);
+                    },
                   ),
                 ),
               ),
             ),
 
-            // Conteúdo
+            // Dot indicators
             Positioned(
-              bottom: 0,
+              bottom: 8,
               left: 0,
               right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Título
-                    Text(
-                      anime.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(
-                            offset: Offset(0, 2),
-                            blurRadius: 8,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  bannerAnimes.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                    width: _currentBannerIndex == index ? 18 : 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: _currentBannerIndex == index
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(3),
                     ),
-                    const SizedBox(height: 12),
-
-                    // Informações com Glassmorphism
-                    Row(
-                      children: [
-                        if (anime.score != null) ...[
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.5),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.star,
-                                      color: Colors.amber,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      anime.score!.toStringAsFixed(1),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (anime.episodes != null) ...[
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.tv,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${anime.episodes} eps',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Botão Play
-                    ElevatedButton.icon(
-                      onPressed: () => _onAnimeTap(anime),
-                      icon: const Icon(Icons.play_arrow, size: 28),
-                      label: Text(
-                        l10n.watchNow.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 8,
-                        shadowColor: AppColors.primary.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBannerItem(JikanAnime anime) {
+    return GestureDetector(
+      onTap: () => _onAnimeTap(anime),
+      child: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
+            child: CachedNetworkImage(
+              imageUrl: anime.largImageUrl ?? anime.imageUrl,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
+              memCacheWidth: 1200,
+              memCacheHeight: 1600,
+              maxWidthDiskCache: 1200,
+              maxHeightDiskCache: 1600,
+              placeholder: (context, url) => Container(
+                color: AppColors.surface,
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: AppColors.surface,
+                child: const Icon(Icons.error, color: Colors.white54),
+              ),
+            ),
+          ),
+
+          // Subtle gradient overlay (Apple-style - more subtle)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.2),
+                    Colors.black.withValues(alpha: 0.6),
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Title overlay
+          Positioned(
+            bottom: 10,
+            left: 12,
+            right: 12,
+            child: Text(
+              anime.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                shadows: [
+                  Shadow(
+                    offset: Offset(0, 1),
+                    blurRadius: 4,
+                    color: Colors.black45,
+                  ),
+                ],
+                letterSpacing: 0.2,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -833,6 +771,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           gradient,
                           sectionId ?? title,
                           index,
+                          showScore: sectionId != 'season',
                         ),
                       );
                     },
@@ -847,8 +786,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     JikanAnime anime,
     Gradient gradient,
     String sectionId,
-    int index,
-  ) {
+    int index, {
+    bool showScore = true,
+  }) {
     return GestureDetector(
       onTap: () => _onAnimeTap(anime),
       child: Container(
@@ -925,8 +865,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // Score badge com Glassmorphism
-                    if (anime.score != null)
+                    // Score badge com Glassmorphism (only if showScore is true)
+                    if (showScore && anime.score != null)
                       Positioned(
                         top: 8,
                         right: 8,
