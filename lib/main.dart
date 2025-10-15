@@ -21,6 +21,7 @@ import 'models/anilist_models.dart';
 import 'services/anilist_service.dart';
 import 'services/allanime_service.dart';
 import 'services/locale_service.dart';
+import 'services/episode_thumbnail_service.dart';
 import 'l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'screens/main_navigation_screen.dart';
@@ -81,11 +82,79 @@ class ThemeProvider extends ChangeNotifier {
 class Episode {
   final String number;
   final String url;
+  final String? thumbnail;
+  final String? title;
+  final String? description;
 
-  Episode({required this.number, required this.url});
+  Episode({
+    required this.number,
+    required this.url,
+    this.thumbnail,
+    this.title,
+    this.description,
+  });
 
   @override
   String toString() => number;
+
+  /// Get episode thumbnail URL
+  String? getImageUrl() => thumbnail;
+}
+
+/// Stream Episode List Item with enhanced metadata
+class StreamEpisodeListItem {
+  final String episodeNumber;
+  final String? thumbnailUrl;
+  final String? title;
+  final String? description;
+  final String? url;
+  final Duration? duration;
+  final DateTime? airDate;
+
+  StreamEpisodeListItem({
+    required this.episodeNumber,
+    this.thumbnailUrl,
+    this.title,
+    this.description,
+    this.url,
+    this.duration,
+    this.airDate,
+  });
+
+  /// Get episode thumbnail image URL
+  String? getImageUrl() => thumbnailUrl;
+
+  /// Convert to Episode for compatibility
+  Episode toEpisode() {
+    return Episode(
+      number: episodeNumber,
+      url: url ?? '',
+      thumbnail: thumbnailUrl,
+      title: title,
+      description: description,
+    );
+  }
+
+  factory StreamEpisodeListItem.fromJson(Map<String, dynamic> json) {
+    return StreamEpisodeListItem(
+      episodeNumber:
+          json['episodeNumber']?.toString() ?? json['number']?.toString() ?? '',
+      thumbnailUrl: json['thumbnail'] ?? json['thumbnailUrl'] ?? json['image'],
+      title: json['title'] ?? json['name'],
+      description: json['description'] ?? json['synopsis'],
+      url: json['url'],
+      duration: json['duration'] != null
+          ? Duration(
+              seconds: json['duration'] is int
+                  ? json['duration']
+                  : int.tryParse(json['duration'].toString()) ?? 0,
+            )
+          : null,
+      airDate: json['airDate'] != null
+          ? DateTime.tryParse(json['airDate'].toString())
+          : null,
+    );
+  }
 }
 
 enum AnimeSource { animeFire, allAnime }
@@ -266,10 +335,29 @@ class AnimeService {
       for (var element in animeElements) {
         final name = element.text.trim();
         final url = element.attributes['href'] ?? '';
+
+        // Try to get thumbnail from img element
+        String? thumbnail;
+        final imgElement = element.querySelector('img.imgAnimes');
+        if (imgElement != null) {
+          thumbnail =
+              imgElement.attributes['data-src'] ?? imgElement.attributes['src'];
+        }
+
         if (name.isNotEmpty && url.isNotEmpty) {
           animes.add(
-            Anime(name: name, url: url, source: AnimeSource.animeFire),
+            Anime(
+              name: name,
+              url: url,
+              source: AnimeSource.animeFire,
+              fallbackImageUrl: thumbnail,
+            ),
           );
+
+          // Debug first few results
+          if (animes.length <= 3) {
+            debugPrint('[AnimeFire] Anime: $name, thumbnail: $thumbnail');
+          }
         }
       }
 
@@ -353,11 +441,16 @@ class AnimeService {
       debugPrint(
         '[AnimeService] Getting episodes for ${anime.name} from ${anime.sourceName}',
       );
+      debugPrint('[AnimeService] Anime thumbnail URL: ${anime.imageUrl}');
+      debugPrint(
+        '[AnimeService] Has AniList data: ${anime.aniListData != null}',
+      );
+      debugPrint('[AnimeService] Fallback image: ${anime.fallbackImageUrl}');
 
       if (anime.source == AnimeSource.allAnime) {
         return await _getEpisodesFromAllAnime(anime);
       } else {
-        return await _getEpisodesFromAnimeFire(anime.url);
+        return await _getEpisodesFromAnimeFire(anime);
       }
     } catch (e) {
       throw Exception('Error getting episodes: $e');
@@ -365,12 +458,13 @@ class AnimeService {
   }
 
   /// Busca episódios do AnimeFire
-  static Future<List<Episode>> _getEpisodesFromAnimeFire(
-    String animeUrl,
-  ) async {
+  static Future<List<Episode>> _getEpisodesFromAnimeFire(Anime anime) async {
     try {
+      debugPrint('[AnimeFire] Fetching episodes for: ${anime.name}');
+      debugPrint('[AnimeFire] Anime thumbnail: ${anime.imageUrl}');
+
       final response = await http
-          .get(Uri.parse(animeUrl))
+          .get(Uri.parse(anime.url))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
@@ -382,16 +476,71 @@ class AnimeService {
         'a.lEp.epT.divNumEp.smallbox.px-2.mx-1.text-left.d-flex',
       );
 
-      List<Episode> episodes = [];
+      // Extract episode numbers
+      List<int> episodeNumbers = [];
+      List<Episode> tempEpisodes = [];
+
       for (var element in episodeElements) {
         final number = element.text.trim();
         final url = element.attributes['href'] ?? '';
         if (number.isNotEmpty && url.isNotEmpty) {
-          episodes.add(Episode(number: number, url: url));
+          final episodeNumMatch = RegExp(r'\d+').firstMatch(number);
+          if (episodeNumMatch != null) {
+            final epNum = int.tryParse(episodeNumMatch.group(0)!);
+            if (epNum != null) {
+              episodeNumbers.add(epNum);
+              tempEpisodes.add(Episode(number: number, url: url));
+            }
+          }
         }
       }
 
+      // Batch fetch episode-specific thumbnails from multiple sources
+      debugPrint('[AnimeFire] Fetching episode-specific thumbnails...');
+      final kitsuThumbnails = await EpisodeThumbnailService.batchGetThumbnails(
+        animeTitle: anime.name,
+        episodeNumbers: episodeNumbers,
+        malId: anime.malId?.toString(),
+        anilistId: anime.anilistId?.toString(),
+      );
+
+      if (kitsuThumbnails.isNotEmpty) {
+        debugPrint(
+          '[AnimeFire] Got ${kitsuThumbnails.length} episode-specific thumbnails from Kitsu',
+        );
+      }
+
+      List<Episode> episodes = [];
+      for (int i = 0; i < tempEpisodes.length; i++) {
+        final tempEp = tempEpisodes[i];
+        final epNum = episodeNumbers[i];
+
+        // Priority: Kitsu thumbnail > Anime thumbnail
+        String? episodeThumbnail;
+        if (kitsuThumbnails.containsKey(epNum)) {
+          episodeThumbnail = kitsuThumbnails[epNum];
+          if (episodes.length < 3) {
+            debugPrint('[AnimeFire] Episode $epNum: Using Kitsu thumbnail');
+          }
+        } else {
+          episodeThumbnail = anime.imageUrl.isNotEmpty ? anime.imageUrl : null;
+        }
+
+        episodes.add(
+          Episode(
+            number: tempEp.number,
+            url: tempEp.url,
+            thumbnail: episodeThumbnail,
+          ),
+        );
+      }
+
       debugPrint('[AnimeFire] Found ${episodes.length} episodes');
+      if (episodes.isNotEmpty) {
+        debugPrint(
+          '[AnimeFire] First episode thumbnail: ${episodes.first.thumbnail}',
+        );
+      }
       return episodes;
     } catch (e) {
       debugPrint('[AnimeFire] Get episodes error: $e');
@@ -399,31 +548,91 @@ class AnimeService {
     }
   }
 
-  /// Busca episódios do AllAnime
+  /// Busca episódios do AllAnime com thumbnails
   static Future<List<Episode>> _getEpisodesFromAllAnime(Anime anime) async {
     try {
       final animeId = anime.allAnimeId ?? anime.url;
-      final episodesList = await AllAnimeService.getEpisodesList(animeId);
+      final showThumbnail = anime.imageUrl; // Use anime's image as fallback
 
-      if (episodesList.isEmpty) {
+      debugPrint('[AllAnime] Fetching episodes for: ${anime.name}');
+      debugPrint('[AllAnime] Show thumbnail: $showThumbnail');
+
+      // Try to get detailed episodes with thumbnails first
+      final detailedEpisodes = await AllAnimeService.getEpisodesListDetailed(
+        animeId,
+        showThumbnail: showThumbnail,
+      );
+
+      if (detailedEpisodes.isEmpty) {
         debugPrint('[AllAnime] No episodes found');
         return [];
       }
 
-      List<Episode> episodes = [];
-      for (var episodeNo in episodesList) {
-        final displayNumber = episodeNo.contains('.')
-            ? 'Episódio $episodeNo'
-            : 'Episódio $episodeNo';
-        episodes.add(
-          Episode(
-            number: displayNumber,
-            url: episodeNo, // Para AllAnime, guardamos o número do episódio
-          ),
+      // Batch fetch episode-specific thumbnails from multiple sources
+      final episodeNumbers = detailedEpisodes
+          .map((e) => int.tryParse(e.episodeNumber))
+          .where((n) => n != null)
+          .cast<int>()
+          .toList();
+
+      debugPrint('[AllAnime] Fetching episode-specific thumbnails...');
+      final kitsuThumbnails = await EpisodeThumbnailService.batchGetThumbnails(
+        animeTitle: anime.name,
+        episodeNumbers: episodeNumbers,
+        malId: anime.malId?.toString(),
+        anilistId: anime.anilistId?.toString(),
+      );
+
+      if (kitsuThumbnails.isNotEmpty) {
+        debugPrint(
+          '[AllAnime] Got ${kitsuThumbnails.length} episode-specific thumbnails from Kitsu',
         );
       }
 
-      debugPrint('[AllAnime] Found ${episodes.length} episodes');
+      List<Episode> episodes = [];
+      for (var allAnimeEp in detailedEpisodes) {
+        final displayNumber = allAnimeEp.episodeNumber.contains('.')
+            ? 'Episódio ${allAnimeEp.episodeNumber}'
+            : 'Episódio ${allAnimeEp.episodeNumber}';
+
+        // Priority: Kitsu thumbnail > AllAnime thumbnail > Show thumbnail
+        String? episodeThumbnail;
+
+        final epNum = int.tryParse(allAnimeEp.episodeNumber);
+        if (epNum != null && kitsuThumbnails.containsKey(epNum)) {
+          episodeThumbnail = kitsuThumbnails[epNum];
+          if (episodes.length < 3) {
+            debugPrint('[AllAnime] Episode $epNum: Using Kitsu thumbnail');
+          }
+        } else {
+          episodeThumbnail = allAnimeEp.getImageUrl();
+          if (episodeThumbnail == null || episodeThumbnail.isEmpty) {
+            episodeThumbnail = showThumbnail;
+          }
+        }
+
+        episodes.add(
+          Episode(
+            number: displayNumber,
+            url: allAnimeEp
+                .episodeNumber, // Para AllAnime, guardamos o número do episódio
+            thumbnail: episodeThumbnail, // Add thumbnail (with fallback)
+            title: allAnimeEp.title,
+            description: allAnimeEp.description,
+          ),
+        );
+
+        // Log first few episodes for debugging
+        if (episodes.length <= 3) {
+          debugPrint(
+            '[AllAnime] Episode ${allAnimeEp.episodeNumber} final thumbnail: $episodeThumbnail',
+          );
+        }
+      }
+
+      debugPrint(
+        '[AllAnime] Converted ${episodes.length} episodes with thumbnails',
+      );
       return episodes;
     } catch (e) {
       debugPrint('[AllAnime] Get episodes error: $e');

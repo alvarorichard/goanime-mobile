@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // Seção: Destaques da Temporada
                   _buildModernSection(
@@ -383,25 +383,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: _headerOpacity > 0
-          ? AppColors.background
+          ? AppColors.background.withValues(alpha: 0.95)
           : Colors.transparent,
       elevation: 0,
-      toolbarHeight: 60,
+      toolbarHeight: 64,
+      flexibleSpace: _headerOpacity > 0
+          ? Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.background,
+                    AppColors.background.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            )
+          : null,
       title: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryDark],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: const Icon(
           Icons.play_circle_filled,
           color: Colors.white,
-          size: 24,
+          size: 22,
         ),
       ),
+      centerTitle: false,
       actions: [
         IconButton(
-          icon: const Icon(Icons.search, color: Colors.white, size: 26),
+          icon: const Icon(Icons.search, color: Colors.white, size: 24),
+          tooltip: 'Search',
           onPressed: () {
             Navigator.push(
               context,
@@ -413,8 +438,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           icon: const Icon(
             Icons.settings_outlined,
             color: Colors.white,
-            size: 26,
+            size: 24,
           ),
+          tooltip: 'Settings',
           onPressed: () {
             Navigator.push(
               context,
@@ -422,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -443,60 +469,85 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
       },
-      child: Container(
-        height: 200,
-        margin: const EdgeInsets.only(top: 88),
-        child: Stack(
-          children: [
-            // PageView with rounded corners
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
-                  child: PageView.builder(
-                    controller: _bannerPageController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentBannerIndex = index;
-                      });
-                    },
-                    itemCount: bannerAnimes.length,
-                    itemBuilder: (context, index) {
-                      final anime = bannerAnimes[index];
-                      return _buildBannerItem(anime);
-                    },
-                  ),
-                ),
-              ),
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculate responsive height based on screen width
+          final screenWidth = constraints.maxWidth;
+          // Banner height reduzido levemente: 63% of width, clamped 215-295px
+          final bannerHeight = (screenWidth * 0.63).clamp(215.0, 295.0);
 
-            // Dot indicators
-            Positioned(
-              bottom: 8,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  bannerAnimes.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                    width: _currentBannerIndex == index ? 18 : 5,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: _currentBannerIndex == index
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(3),
+          // Abaixado levemente: 106px do topo (antes 100px)
+          // Status bar (~44-47px) + AppBar (64px) = ~108-111px
+          // Pequeno espaço de segurança sem sobrepor ícones
+          final bannerTopMargin = 106.0;
+
+          return Container(
+            height: bannerHeight,
+            margin: EdgeInsets.only(top: bannerTopMargin, bottom: 12),
+            child: Stack(
+              children: [
+                // PageView with rounded corners
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: PageView.builder(
+                        controller: _bannerPageController,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentBannerIndex = index;
+                          });
+                        },
+                        itemCount: bannerAnimes.length,
+                        itemBuilder: (context, index) {
+                          final anime = bannerAnimes[index];
+                          return _buildBannerItem(anime);
+                        },
+                      ),
                     ),
                   ),
                 ),
-              ),
+
+                // Dot indicators
+                Positioned(
+                  bottom: 12,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      bannerAnimes.length,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: _currentBannerIndex == index ? 20 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: _currentBannerIndex == index
+                              ? AppColors.primary
+                              : Colors.white.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(3),
+                          boxShadow: _currentBannerIndex == index
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    blurRadius: 8,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -624,7 +675,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(9),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -647,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                           ],
                         ),
-                        child: Icon(icon, color: Colors.white, size: 20),
+                        child: Icon(icon, color: Colors.white, size: 19),
                       ),
                     ),
                   ),
@@ -657,68 +708,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       title,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GenreAnimesScreen(
-                                title: title,
-                                icon: icon,
-                                gradient: gradient,
-                                genreId: genreId,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GenreAnimesScreen(
+                                  title: title,
+                                  icon: icon,
+                                  gradient: gradient,
+                                  genreId: genreId,
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                width: 1.5,
                               ),
                             ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppColors.primary.withValues(
-                            alpha: 0.15,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              width: 1.5,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l10n.seeAll,
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: AppColors.primary,
+                                  size: 11,
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              l10n.seeAll,
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              color: AppColors.primary,
-                              size: 12,
-                            ),
-                          ],
                         ),
                       ),
                     ),

@@ -68,7 +68,141 @@ class AllAnimeService {
     }
   }
 
-  /// Busca lista de episódios de um anime
+  /// Busca lista detalhada de episódios com thumbnails
+  static Future<List<AllAnimeEpisode>> getEpisodesListDetailed(
+    String animeId, {
+    String mode = 'sub',
+    String? showThumbnail,
+  }) async {
+    try {
+      debugPrint('[AllAnime] Getting detailed episodes for anime: $animeId');
+
+      const episodesDetailGql = '''
+        query (\$showId: String!) {
+          show(_id: \$showId) {
+            _id
+            thumbnail
+            episodeInfos
+            availableEpisodesDetail
+          }
+        }
+      ''';
+
+      final variables = jsonEncode({'showId': animeId});
+      final url = Uri.parse(
+        '$_allAnimeAPI?variables=${Uri.encodeComponent(variables)}&query=${Uri.encodeComponent(episodesDetailGql)}',
+      );
+
+      final response = await http
+          .get(
+            url,
+            headers: {'User-Agent': _userAgent, 'Referer': _allAnimeReferer},
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final show = data['data']?['show'];
+
+        if (show != null) {
+          final episodeInfos = show['episodeInfos'] as List? ?? [];
+          final availableDetail = show['availableEpisodesDetail'];
+          final fallbackThumbnail = showThumbnail ?? show['thumbnail'];
+
+          // Get available episodes for the mode
+          List<String> availableEpisodes = [];
+          if (availableDetail != null && availableDetail[mode] != null) {
+            availableEpisodes = List<String>.from(availableDetail[mode]);
+          }
+
+          debugPrint(
+            '[AllAnime] Processing ${availableEpisodes.length} episodes',
+          );
+          debugPrint('[AllAnime] Fallback thumbnail: $fallbackThumbnail');
+
+          // Map episode infos with available episodes
+          List<AllAnimeEpisode> episodes = [];
+          for (final episodeNum in availableEpisodes) {
+            // Find matching episode info
+            final episodeInfo = episodeInfos.firstWhere(
+              (info) => info['episodeIdNum']?.toString() == episodeNum,
+              orElse: () => <String, dynamic>{},
+            );
+
+            // Try to get episode-specific thumbnail
+            String? episodeThumbnail;
+            if (episodeInfo.isNotEmpty) {
+              // Check for thumbnails array
+              if (episodeInfo['thumbnails'] != null &&
+                  episodeInfo['thumbnails'] is List) {
+                final thumbnails = episodeInfo['thumbnails'] as List;
+                if (thumbnails.isNotEmpty) {
+                  episodeThumbnail = thumbnails.first?.toString();
+                }
+              }
+              // Fallback to single thumbnail field
+              episodeThumbnail ??= episodeInfo['thumbnail']?.toString();
+            }
+
+            // Use show thumbnail as final fallback
+            final finalThumbnail = episodeThumbnail ?? fallbackThumbnail;
+
+            episodes.add(
+              AllAnimeEpisode(
+                episodeNumber: episodeNum,
+                thumbnail: finalThumbnail,
+                title: episodeInfo['notes'] ?? 'Episode $episodeNum',
+                description: episodeInfo['description'],
+              ),
+            );
+
+            if (episodes.length <= 3) {
+              debugPrint(
+                '[AllAnime] Episode $episodeNum thumbnail: $finalThumbnail',
+              );
+            }
+          }
+
+          debugPrint(
+            '[AllAnime] Found ${episodes.length} detailed episodes with thumbnails',
+          );
+          return episodes;
+        }
+      }
+
+      debugPrint(
+        '[AllAnime] Falling back to simple episode list with show thumbnail',
+      );
+      final simpleList = await getEpisodesList(animeId, mode: mode);
+      return simpleList
+          .map(
+            (episodeNum) => AllAnimeEpisode(
+              episodeNumber: episodeNum,
+              thumbnail: showThumbnail,
+            ),
+          )
+          .toList();
+    } catch (e) {
+      debugPrint('[AllAnime] Get detailed episodes error: $e');
+      // Return episodes with fallback thumbnail
+      try {
+        final simpleList = await getEpisodesList(animeId, mode: mode);
+        return simpleList
+            .map(
+              (episodeNum) => AllAnimeEpisode(
+                episodeNumber: episodeNum,
+                thumbnail: showThumbnail,
+              ),
+            )
+            .toList();
+      } catch (fallbackError) {
+        debugPrint('[AllAnime] Fallback also failed: $fallbackError');
+        return [];
+      }
+    }
+  }
+
+  /// Busca lista de episódios de um anime (versão simples)
   static Future<List<String>> getEpisodesList(
     String animeId, {
     String mode = 'sub',
@@ -344,5 +478,37 @@ class AllAnimeShow {
       if (sub is num) return sub.toInt();
     }
     return 0;
+  }
+}
+
+/// Episode information from AllAnime
+class AllAnimeEpisode {
+  final String episodeNumber;
+  final String? thumbnail;
+  final String? title;
+  final String? description;
+
+  AllAnimeEpisode({
+    required this.episodeNumber,
+    this.thumbnail,
+    this.title,
+    this.description,
+  });
+
+  /// Get episode thumbnail URL
+  String? getImageUrl() {
+    if (thumbnail == null || thumbnail!.isEmpty) return null;
+    // Ensure thumbnail is a full URL
+    if (thumbnail!.startsWith('http')) return thumbnail;
+    return 'https://wp.youtube-anime.com/aln.youtube-anime.com/$thumbnail';
+  }
+
+  factory AllAnimeEpisode.fromJson(Map<String, dynamic> json) {
+    return AllAnimeEpisode(
+      episodeNumber: json['episodeNumber']?.toString() ?? '',
+      thumbnail: json['thumbnail'] ?? json['thumbnails']?.first,
+      title: json['title'] ?? json['notes'],
+      description: json['description'],
+    );
   }
 }

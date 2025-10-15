@@ -674,30 +674,36 @@ class _EpisodeListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use episode-specific thumbnail if available, otherwise use anime thumbnail
+    final thumbnailUrl =
+        (episode.thumbnail != null && episode.thumbnail!.isNotEmpty)
+        ? episode.thumbnail!
+        : (animeThumbnail.isNotEmpty ? animeThumbnail : null);
+    final hasImage = thumbnailUrl != null;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF1A1A2E).withValues(alpha: 0.8),
-              const Color(0xFF16213E).withValues(alpha: 0.6),
+              Color(0xCC1A1A2E), // 0.8 alpha
+              Color(0x9916213E), // 0.6 alpha
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: const Color(0x0DFFFFFF)), // 0.05 alpha
         ),
         child: Row(
           children: [
-            // Episode Number Badge
+            // Episode Thumbnail - Always show anime poster
             Container(
-              width: 60,
-              height: 60,
+              width: 120,
+              height: 80,
+              margin: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: AppColors.getPrimaryGradient(),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -707,78 +713,197 @@ class _EpisodeListCard extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Center(
-                child: Text(
-                  _getEpisodeNumber(episode.number, index),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            // Episode Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
                 children: [
-                  Text(
-                    animeTitle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  // Anime Thumbnail Image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: hasImage
+                        ? CachedNetworkImage(
+                            imageUrl: thumbnailUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            placeholder: (context, url) => Container(
+                              decoration: BoxDecoration(
+                                gradient: AppColors.getPrimaryGradient(),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              decoration: BoxDecoration(
+                                gradient: AppColors.getPrimaryGradient(),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.white54,
+                                  size: 32,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: AppColors.getPrimaryGradient(),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.movie,
+                                color: Colors.white54,
+                                size: 32,
+                              ),
+                            ),
+                          ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _getEpisodeLabel(episode.number, index),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+
+                  // Dark overlay gradient
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Color(0x99000000), // 0.6 alpha black
+                          ],
+                        ),
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  // Episode number badge on top-left
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC000000), // 0.8 alpha black
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(
+                            0x8064FFDA,
+                          ), // 0.5 alpha primaryLight
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        _getEpisodeNumber(episode.number, index),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Play Icon in center
+                  const Positioned.fill(
+                    child: Center(
+                      child: Icon(
+                        Icons.play_circle_filled,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // Download Button
-            DownloadButton(
-              animeId:
-                  allAnimeId ??
-                  animeUrl, // Use AllAnime ID if available, otherwise URL
-              animeName: animeTitle,
-              episodeNumber: _getEpisodeNumber(episode.number, index),
-              episodeTitle: _getEpisodeLabel(episode.number, index),
-              videoUrl: episode.url,
-              thumbnailUrl: animeThumbnail,
-              quality: DownloadQuality.auto,
-            ),
-            const SizedBox(width: 8),
-
-            // Play Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
+            // Episode Info
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 4,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _getEpisodeLabel(episode.number, index),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    if (episode.title != null && episode.title!.isNotEmpty)
+                      Text(
+                        episode.title!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Text(
+                        animeTitle,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (episode.description != null &&
+                        episode.description!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          episode.description!,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              child: const Icon(
-                Icons.play_arrow,
-                color: AppColors.primary,
-                size: 24,
+            ),
+
+            // Download Button
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: DownloadButton(
+                animeId:
+                    allAnimeId ??
+                    animeUrl, // Use AllAnime ID if available, otherwise URL
+                animeName: animeTitle,
+                episodeNumber: _getEpisodeNumber(episode.number, index),
+                episodeTitle: _getEpisodeLabel(episode.number, index),
+                videoUrl: episode.url,
+                thumbnailUrl: thumbnailUrl ?? '',
+                quality: DownloadQuality.auto,
               ),
             ),
           ],

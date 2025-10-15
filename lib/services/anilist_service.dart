@@ -261,4 +261,107 @@ class AniListService {
       return null;
     }
   }
+
+  /// Fetches episode thumbnails from AniList using streaming episodes data
+  /// Note: AniList streamingEpisodes are rarely populated, so this mainly serves
+  /// as a bonus feature when available. Most episodes will use anime thumbnail.
+  static Future<Map<String, String>> fetchEpisodeThumbnails(
+    int? anilistId,
+    int? malId,
+  ) async {
+    // Disabled for now as streamingEpisodes are rarely available in AniList
+    // and add unnecessary API calls. Just use anime thumbnails as fallback.
+    debugPrint(
+      '[AniList] Episode thumbnail fetching skipped (streamingEpisodes rarely available)',
+    );
+    return {};
+
+    /* Original implementation kept for reference:
+    if (anilistId == null && malId == null) {
+      debugPrint('[AniList] No ID provided for episode thumbnails');
+      return {};
+    }
+
+    const query = '''
+      query (\$id: Int, \$idMal: Int) {
+        Media(id: \$id, idMal: \$idMal, type: ANIME) {
+          id
+          idMal
+          streamingEpisodes {
+            title
+            thumbnail
+            url
+            site
+          }
+        }
+      }
+    ''';
+
+    try {
+      final variables = <String, dynamic>{};
+      if (anilistId != null) variables['id'] = anilistId;
+      if (malId != null) variables['idMal'] = malId;
+
+      debugPrint('[AniList] Fetching episode thumbnails for AniList:$anilistId MAL:$malId');
+
+      final requestBody = json.encode({
+        'query': query,
+        'variables': variables,
+      });
+
+      final response = await http.post(
+        Uri.parse(_apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: requestBody,
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('[AniList] Error fetching episodes: HTTP ${response.statusCode}');
+        return {};
+      }
+
+      final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
+      
+      if (jsonResponse.containsKey('errors')) {
+        debugPrint('[AniList] GraphQL errors: ${jsonResponse['errors']}');
+        return {};
+      }
+
+      final streamingEpisodes = jsonResponse['data']?['Media']?['streamingEpisodes'] as List?;
+      
+      if (streamingEpisodes == null || streamingEpisodes.isEmpty) {
+        debugPrint('[AniList] No streaming episodes found');
+        return {};
+      }
+
+      // Map episode number to thumbnail URL
+      final Map<String, String> episodeThumbnails = {};
+      
+      for (final episode in streamingEpisodes) {
+        final title = episode['title'] as String?;
+        final thumbnail = episode['thumbnail'] as String?;
+        
+        if (title != null && thumbnail != null) {
+          // Extract episode number from title
+          final episodeNum = _extractEpisodeNumber(title);
+          if (episodeNum != null) {
+            episodeThumbnails[episodeNum] = thumbnail;
+            if (episodeThumbnails.length <= 3) {
+              debugPrint('[AniList] Episode $episodeNum: $thumbnail');
+            }
+          }
+        }
+      }
+
+      debugPrint('[AniList] Found ${episodeThumbnails.length} episode thumbnails');
+      return episodeThumbnails;
+    } catch (e) {
+      debugPrint('[AniList] Exception fetching episode thumbnails: $e');
+      return {};
+    }
+    */
+  }
 }

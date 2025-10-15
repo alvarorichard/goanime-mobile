@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bottom_navy_bar/bottom_navy_bar.dart';
 import 'package:ionicons/ionicons.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
@@ -43,63 +42,130 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: IndexedStack(index: _currentIndex, children: screens),
-        bottomNavigationBar: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+        bottomNavigationBar: SafeArea(
+          child: Container(
+            margin: EdgeInsets.only(
+              left: 12,
+              right: 12,
+              bottom: MediaQuery.of(context).padding.bottom > 0 ? 8 : 12,
+            ),
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                width: 1,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, -2),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    icon: Ionicons.home_outline,
+                    activeIcon: Ionicons.home,
+                    label: 'Home',
+                    index: 0,
+                  ),
+                  _buildNavItem(
+                    icon: Ionicons.search_outline,
+                    activeIcon: Ionicons.search,
+                    label: 'Search',
+                    index: 1,
+                  ),
+                  _buildNavItem(
+                    icon: Ionicons.bookmark_outline,
+                    activeIcon: Ionicons.bookmark,
+                    label: 'Watchlist',
+                    index: 2,
+                  ),
+                  _buildNavItem(
+                    icon: Ionicons.download_outline,
+                    activeIcon: Ionicons.download,
+                    label: 'Downloads',
+                    index: 3,
+                  ),
+                  _buildNavItem(
+                    icon: Ionicons.settings_outline,
+                    activeIcon: Ionicons.settings,
+                    label: 'Settings',
+                    index: 4,
+                  ),
+                ],
+              ),
+            ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BottomNavyBar(
-              backgroundColor: Colors.transparent,
-              selectedIndex: _currentIndex,
-              showElevation: false,
-              onItemSelected: (index) {
-                setState(() => _currentIndex = index);
-              },
-              items: [
-                BottomNavyBarItem(
-                  icon: const Icon(Ionicons.home_outline),
-                  title: const Text('Home'),
-                  activeColor: AppColors.primary,
-                  inactiveColor: Colors.grey,
-                  textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+  }) {
+    final isSelected = _currentIndex == index;
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _currentIndex = index),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.15)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isSelected ? activeIcon : icon,
+                    color: isSelected
+                        ? AppColors.primary
+                        : Colors.grey.shade600,
+                    size: 20,
+                  ),
                 ),
-                BottomNavyBarItem(
-                  icon: const Icon(Ionicons.search_outline),
-                  title: const Text('Pesquisa'),
-                  activeColor: AppColors.primary,
-                  inactiveColor: Colors.grey,
-                  textAlign: TextAlign.center,
-                ),
-                BottomNavyBarItem(
-                  icon: const Icon(Ionicons.bookmark_outline),
-                  title: const Text('Watchlist'),
-                  activeColor: AppColors.primary,
-                  inactiveColor: Colors.grey,
-                  textAlign: TextAlign.center,
-                ),
-                BottomNavyBarItem(
-                  icon: const Icon(Ionicons.download_outline),
-                  title: const Text('Downloads'),
-                  activeColor: AppColors.primary,
-                  inactiveColor: Colors.grey,
-                  textAlign: TextAlign.center,
-                ),
-                BottomNavyBarItem(
-                  icon: const Icon(Ionicons.settings_outline),
-                  title: const Text('Settings'),
-                  activeColor: AppColors.primary,
-                  inactiveColor: Colors.grey,
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 2),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppColors.primary
+                        : Colors.grey.shade600,
+                    fontSize: isSelected ? 10 : 9,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
