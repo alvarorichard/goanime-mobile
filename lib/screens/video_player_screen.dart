@@ -1,18 +1,20 @@
-import 'dart:io';
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:chewie/chewie.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
-import '../main.dart';
+
 import '../google_video_proxy.dart';
+import '../l10n/app_localizations.dart';
+import '../main.dart';
+import '../models/aniskip_models.dart';
 import '../services/allanime_service.dart';
 import '../services/aniskip_service.dart';
-import '../models/aniskip_models.dart';
-import '../widgets/skip_button.dart';
-import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../widgets/skip_button.dart';
 
 // Function to extract only episode number from full text
 String _extractEpisodeNumber(String episodeText) {
@@ -63,6 +65,7 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   String? _bloggerVideoUrl;
   GoogleVideoProxy? _googleVideoProxy;
   bool _isGoogleStream = false;
+  bool _useAlternativeReferer = false;
 
   // AniSkip related variables
   SkipTimes? _skipTimes;
@@ -704,10 +707,20 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
         }
 
         resolvedVideoUrl = actualVideo.url;
+        final referer = _useAlternativeReferer
+            ? 'https://animefire.plus/'
+            : 'https://animefire.io/';
+        if (_useAlternativeReferer) {
+          debugPrint(
+            '[VideoPlayer] ✅ FALLBACK ATIVADO - Usando referer: $referer',
+          );
+        } else {
+          debugPrint('[VideoPlayer] 🔗 Usando referer: $referer');
+        }
         final playbackHeaders = <String, String>{
           HttpHeaders.userAgentHeader:
               'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
-          HttpHeaders.refererHeader: 'https://animefire.plus/',
+          HttpHeaders.refererHeader: referer,
         };
 
         if (actualVideo.hasHeaders) {
@@ -782,6 +795,15 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           );
           return;
         }
+        if (_useAlternativeReferer) {
+          debugPrint(
+            '[VideoPlayer] ✅ VIDEO CARREGADO COM SUCESSO (usando referer .plus)',
+          );
+        } else {
+          debugPrint(
+            '[VideoPlayer] ✅ VIDEO CARREGADO COM SUCESSO (usando referer .io)',
+          );
+        }
         setState(() {
           _isLoading = false;
         });
@@ -793,6 +815,17 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
       await _loadSkipTimes(episodeLengthSeconds: videoDurationSeconds);
     } catch (e) {
       debugPrint('Error initializing video: $e');
+
+      // Retry with alternative referer if 401 Unauthorized
+      if (!_useAlternativeReferer && e.toString().contains('401')) {
+        debugPrint(
+          '[VideoPlayer] ⚠️  ERRO 401 DETECTADO - Mudando referer de .io para .plus...',
+        );
+        _useAlternativeReferer = true;
+        await _initializeVideoPlayer();
+        return;
+      }
+
       await _googleVideoProxy?.stop();
       _googleVideoProxy = null;
       _isGoogleStream = false;
