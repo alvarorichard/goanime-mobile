@@ -201,6 +201,43 @@ class AppLocalizations {
   String get languageChanged => locale.languageCode == 'pt'
       ? 'Idioma alterado com sucesso'
       : 'Language changed successfully';
+
+  // Continue Watching
+  String get continueWatching =>
+      locale.languageCode == 'pt' ? 'Continue Assistindo' : 'Continue Watching';
+  String get clearContinueWatching =>
+      locale.languageCode == 'pt' ? 'Limpar Histórico' : 'Clear History';
+  String get clearContinueWatchingConfirmation => locale.languageCode == 'pt'
+      ? 'Tem certeza que deseja limpar todo o histórico de visualização?'
+      : 'Are you sure you want to clear all watching history?';
+
+  // Schedule/Calendar
+  String get releaseCalendar => locale.languageCode == 'pt'
+      ? 'Calendário de Lançamentos'
+      : 'Release Calendar';
+  String get refresh => locale.languageCode == 'pt' ? 'Atualizar' : 'Refresh';
+  String get today => locale.languageCode == 'pt' ? 'Hoje' : 'Today';
+  String get monday => locale.languageCode == 'pt' ? 'Segunda' : 'Monday';
+  String get tuesday => locale.languageCode == 'pt' ? 'Terça' : 'Tuesday';
+  String get wednesday => locale.languageCode == 'pt' ? 'Quarta' : 'Wednesday';
+  String get thursday => locale.languageCode == 'pt' ? 'Quinta' : 'Thursday';
+  String get friday => locale.languageCode == 'pt' ? 'Sexta' : 'Friday';
+  String get saturday => locale.languageCode == 'pt' ? 'Sábado' : 'Saturday';
+  String get sunday => locale.languageCode == 'pt' ? 'Domingo' : 'Sunday';
+  String get errorLoadingSchedule => locale.languageCode == 'pt'
+      ? 'Erro ao carregar calendário'
+      : 'Error loading schedule';
+  String get noReleasesToday => locale.languageCode == 'pt'
+      ? 'Nenhum lançamento hoje'
+      : 'No releases today';
+  String get loadingSchedule => locale.languageCode == 'pt'
+      ? 'Carregando calendário...'
+      : 'Loading schedule...';
+  String get checkBackLater => locale.languageCode == 'pt'
+      ? 'Volte mais tarde para verificar novos horários'
+      : 'Check back later for new release times';
+  String get unknownError =>
+      locale.languageCode == 'pt' ? 'Erro desconhecido' : 'Unknown error';
 }
 
 class _AppLocalizationsDelegate

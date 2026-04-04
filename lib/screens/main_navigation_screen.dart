@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
+
+import '../modules/schedule_calendar/schedule_calendar.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
-import 'watchlist_screen.dart';
-import 'downloads_screen.dart';
 import 'settings_screen.dart';
+import 'watchlist_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -28,7 +29,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const HomeScreen(),
       SearchScreen(onBackPressed: _navigateToHome),
       const WatchlistScreen(),
-      const DownloadsScreen(),
+      const ScheduleCalendarScreen(),
       SettingsScreen(onBackPressed: _navigateToHome),
     ];
 
@@ -94,9 +95,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     index: 2,
                   ),
                   _buildNavItem(
-                    icon: Ionicons.download_outline,
-                    activeIcon: Ionicons.download,
-                    label: 'Downloads',
+                    icon: Ionicons.calendar_outline,
+                    activeIcon: Ionicons.calendar,
+                    label: 'Schedule',
                     index: 3,
                   ),
                   _buildNavItem(
