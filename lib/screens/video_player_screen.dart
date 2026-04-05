@@ -1,18 +1,21 @@
-import 'dart:io';
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:chewie/chewie.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
-import '../main.dart';
+
 import '../google_video_proxy.dart';
+import '../l10n/app_localizations.dart';
+import '../main.dart';
+import '../models/aniskip_models.dart';
+import '../modules/continue_watching/services/continue_watching_service.dart';
 import '../services/allanime_service.dart';
 import '../services/aniskip_service.dart';
-import '../models/aniskip_models.dart';
-import '../widgets/skip_button.dart';
-import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../widgets/skip_button.dart';
 
 // Function to extract only episode number from full text
 String _extractEpisodeNumber(String episodeText) {
@@ -70,6 +73,12 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   String _skipButtonLabel = '';
   Timer? _positionTimer;
   Timer? _skipButtonAutoHideTimer;
+
+  // Continue Watching - salvar progresso
+  Timer? _saveProgressTimer;
+  final ContinueWatchingService _continueWatchingService =
+      ContinueWatchingService();
+  bool _hasSavedFinalProgress = false; // Evitar salvar duplicado no dispose
   int _skipTimesRetryCount = 0;
   static const int _maxSkipTimesRetries = 3;
   static const double _skipLeadSeconds = 3.0;
@@ -775,6 +784,10 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
         },
       );
 
+      // Restaurar posição anterior se existir
+      _hasSavedFinalProgress = false;
+      await _restoreSavedProgress();
+
       if (mounted) {
         if (!_isActiveEpisode(episodeKey)) {
           debugPrint(
@@ -791,6 +804,9 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           _videoPlayerController?.value.duration.inSeconds ?? 0;
       debugPrint('[VideoPlayer] Duration (s): $videoDurationSeconds');
       await _loadSkipTimes(episodeLengthSeconds: videoDurationSeconds);
+
+      // Iniciar timer de salvamento automático de progresso
+      _startAutoSaveTimer();
     } catch (e) {
       debugPrint('Error initializing video: $e');
       await _googleVideoProxy?.stop();
@@ -826,6 +842,130 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Salva o progresso automaticamente a cada 10 segundos enquanto assiste
+  void _startAutoSaveTimer() {
+    _saveProgressTimer?.cancel();
+    _saveProgressTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (!mounted || _videoPlayerController?.value.isInitialized != true) {
+        return;
+      }
+
+      // Não salvar se estiver pausado
+      if (!_videoPlayerController!.value.isPlaying) {
+        return;
+      }
+
+      _saveCurrentProgress();
+    });
+  }
+
+  /// Salva o progresso atual do vídeo
+  void _saveCurrentProgress() {
+    if (_videoPlayerController?.value.isInitialized != true) return;
+
+    final progressSeconds = _videoPlayerController!.value.position.inSeconds;
+    final durationSeconds = _videoPlayerController!.value.duration.inSeconds;
+
+    if (durationSeconds <= 0) return;
+
+    // Não salvar se já assistiu mais de 95% (quase terminou)
+    if (progressSeconds / durationSeconds >= 0.95) return;
+
+    // Não salvar se assistiu menos de 30 segundos
+    if (progressSeconds < 30) return;
+
+    _continueWatchingService.saveProgress(
+      animeTitle: widget.animeTitle,
+      episodeNumber: widget.episode.number,
+      episodeUrl: widget.episode.url,
+      imageUrl: widget.anime?.imageUrl,
+      animeId: widget.anime?.allAnimeId ?? widget.anime?.malId?.toString(),
+      animeUrl: widget.anime?.url,
+      progressSeconds: progressSeconds,
+      durationSeconds: durationSeconds,
+      source: widget.anime?.sourceName,
+    );
+
+    debugPrint(
+      '[ContinueWatching] Saved progress: ${widget.animeTitle} - Ep ${widget.episode.number} at ${progressSeconds}s',
+    );
+  }
+
+  /// Salva o progresso quando sai da tela
+  Future<void> _saveFinalProgress() async {
+    if (_hasSavedFinalProgress) return;
+    if (_videoPlayerController?.value.isInitialized != true) return;
+
+    _hasSavedFinalProgress = true;
+
+    final progressSeconds = _videoPlayerController!.value.position.inSeconds;
+    final durationSeconds = _videoPlayerController!.value.duration.inSeconds;
+
+    if (durationSeconds > 0 && progressSeconds >= 30) {
+      await _continueWatchingService.saveProgress(
+        animeTitle: widget.animeTitle,
+        episodeNumber: widget.episode.number,
+        episodeUrl: widget.episode.url,
+        imageUrl: widget.anime?.imageUrl,
+        animeId: widget.anime?.allAnimeId ?? widget.anime?.malId?.toString(),
+        animeUrl: widget.anime?.url,
+        progressSeconds: progressSeconds,
+        durationSeconds: durationSeconds,
+        source: widget.anime?.sourceName,
+      );
+
+      debugPrint(
+        '[ContinueWatching] Saved final progress: ${widget.animeTitle} - Ep ${widget.episode.number} at ${progressSeconds}s',
+      );
+    }
+  }
+
+  /// Restaura o progresso salvo anterior do episódio
+  Future<void> _restoreSavedProgress() async {
+    try {
+      if (_videoPlayerController?.value.isInitialized != true) return;
+
+      final savedProgress = await _continueWatchingService.getEpisodeProgress(
+        widget.episode.url,
+      );
+
+      if (savedProgress == null) {
+        debugPrint(
+          '[ContinueWatching] No saved progress for episode: ${widget.episode.url}',
+        );
+        return;
+      }
+
+      final progressSeconds = savedProgress.progressSeconds;
+      final durationSeconds = savedProgress.durationSeconds;
+      final percentage = durationSeconds > 0
+          ? (progressSeconds / durationSeconds) * 100
+          : 0.0;
+
+      // Não restaurar se já alcançou 90% (praticamente terminou)
+      if (percentage >= 90) {
+        debugPrint(
+          '[ContinueWatching] ⏭️ Episode already watched (${percentage.toStringAsFixed(1)}%)',
+        );
+        return;
+      }
+
+      // Restaurar no ponto exato salvo
+      final seekPosition = Duration(seconds: progressSeconds);
+
+      await _videoPlayerController!.seekTo(seekPosition);
+
+      debugPrint(
+        '[ContinueWatching] ✅ Restored progress: ${widget.animeTitle} - Ep ${widget.episode.number}',
+      );
+      debugPrint(
+        '[ContinueWatching] 📍 Seeking to: ${seekPosition.inMinutes}:${(seekPosition.inSeconds % 60).toString().padLeft(2, '0')}',
+      );
+    } catch (e) {
+      debugPrint('[ContinueWatching] Error restoring progress: $e');
     }
   }
 
@@ -973,6 +1113,12 @@ class _ModernVideoPlayerScreenState extends State<ModernVideoPlayerScreen> {
   @override
   void dispose() {
     _positionTimer?.cancel();
+    _skipButtonAutoHideTimer?.cancel();
+    _saveProgressTimer?.cancel();
+
+    // Salvar progresso final antes de sair
+    _saveFinalProgress();
+
     _cleanupControllers();
     super.dispose();
   }

@@ -1,0 +1,11 @@
+// Controllers
+export 'controllers/continue_watching_controller.dart';
+// Models
+export 'models/continue_watching_model.dart';
+// Screens
+export 'screens/continue_watching_screen.dart';
+// Services
+export 'services/continue_watching_service.dart';
+// Widgets
+export 'widgets/continue_watching_card.dart';
+export 'widgets/continue_watching_section.dart';
